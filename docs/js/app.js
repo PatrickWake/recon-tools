@@ -4,6 +4,7 @@ let lastScannedTool = null;
 
 // Import technology patterns
 import { TECH_PATTERNS } from './tech-patterns.js';
+import { logger } from './logger.js';
 
 // DOM Elements
 const form = document.getElementById('analysis-form');
@@ -104,6 +105,163 @@ form.addEventListener('submit', async (e) => {
     }
 });
 
+// Helper function to check if a subdomain resolves
+async function checkSubdomain(subdomain, domain) {
+    try {
+        const response = await fetch(`https://dns.google/resolve?name=${subdomain}.${domain}`);
+        if (!response.ok) {
+            return null;
+        }
+        const data = await response.json();
+        if (data.Status === 0 && data.Answer && data.Answer.length > 0) {
+            return {
+                name: `${subdomain}.${domain}`,
+                records: data.Answer.map(record => ({
+                    type: record.type,
+                    data: record.data
+                }))
+            };
+        }
+        return null;
+    } catch (error) {
+        // Log error but continue scanning
+        return null;
+    }
+}
+
+// Subdomain Scanner
+export async function scanSubdomains(domain, testSubdomains = null) {
+    try {
+        const commonSubdomains = testSubdomains || [
+            'www', 'mail', 'ftp', 'smtp', 'pop', 'ns1', 'ns2', 'dns1', 'dns2',
+            'mx1', 'webmail', 'admin', 'dev', 'test', 'portal', 'host', 'beta',
+            'staging', 'api', 'cdn', 'app', 'web', 'cloud', 'db', 'sql', 'data',
+            'git', 'svn', 'jenkins', 'ci', 'build',
+            'auth', 'login', 'sso', 'vpn', 'remote'
+        ];
+
+        const results = {
+            domain: domain,
+            timestamp: new Date().toISOString(),
+            subdomains: [],
+            total: 0
+        };
+
+        // Check subdomains in parallel with rate limiting
+        const batchSize = 5;
+        for (let i = 0; i < commonSubdomains.length; i += batchSize) {
+            const batch = commonSubdomains.slice(i, i + batchSize);
+            const results_batch = await Promise.all(
+                batch.map(subdomain => checkSubdomain(subdomain, domain))
+            );
+            
+            // Add successful results
+            results.subdomains.push(...results_batch.filter(r => r !== null));
+            
+            // Rate limiting - skip in test mode
+            if (!testSubdomains && i + batchSize < commonSubdomains.length) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+
+        results.total = results.subdomains.length;
+        return results;
+    } catch (error) {
+        throw new Error(`Failed to scan subdomains: ${error.message}`);
+    }
+}
+
+// CMS Detection
+export async function detectCMS(url) {
+    let response;
+    let html;
+    let headers;
+
+    try {
+        // Try primary proxy first
+        try {
+            const proxyUrl = `${CORS_PROXY}${encodeURIComponent(url)}`;
+            response = await fetch(proxyUrl);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            html = await response.text();
+            headers = Object.fromEntries(response.headers);
+        } catch (primaryError) {
+            // If primary proxy fails, try fallback
+            logger.warn('Primary proxy failed, trying fallback', primaryError);
+            const fallbackUrl = `${FALLBACK_CORS_PROXY}${encodeURIComponent(url)}`;
+            response = await fetch(fallbackUrl);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            html = await response.text();
+            headers = Object.fromEntries(response.headers);
+        }
+
+        let cmsName = null;
+        let confidence = 0;
+        let version = null;
+
+        // WordPress detection patterns
+        const wpPatterns = {
+            meta: /<meta[^>]*wp-[^>]*>/i,
+            links: /wp-(?:content|includes)/i,
+            generator: /<meta[^>]*generator[^>]*WordPress/i,
+            scripts: /wp-(?:content|includes|json)/i,
+            headers: {
+                'x-powered-by': /wordpress/i,
+                'link': /wp-json/i
+            }
+        };
+
+        // Check WordPress patterns
+        let wpMatches = 0;
+        const totalPatterns = Object.keys(wpPatterns).length + 1; // +1 for headers check
+
+        if (wpPatterns.meta.test(html)) wpMatches++;
+        if (wpPatterns.links.test(html)) wpMatches++;
+        if (wpPatterns.generator.test(html)) wpMatches++;
+        if (wpPatterns.scripts.test(html)) wpMatches++;
+
+        // Check headers
+        for (const [headerName, pattern] of Object.entries(wpPatterns.headers)) {
+            if (headers[headerName] && pattern.test(headers[headerName])) {
+                wpMatches++;
+            }
+        }
+
+        // Calculate confidence
+        confidence = Math.round((wpMatches / totalPatterns) * 100);
+
+        // If confidence is above 40%, consider it WordPress
+        if (confidence > 40) {
+            cmsName = 'wordpress';
+
+            // Try to detect version
+            const versionMatch = html.match(/<meta[^>]*generator[^>]*WordPress\s+([\d.]+)/i);
+            if (versionMatch) {
+                version = versionMatch[1];
+            }
+        }
+
+        return {
+            url: url,
+            timestamp: new Date().toISOString(),
+            detected: confidence > 40,
+            cms: cmsName,
+            confidence: confidence,
+            version: version
+        };
+    } catch (error) {
+        throw new Error(`Failed to detect CMS: ${error.message}`);
+    }
+}
+
 // Technology Stack Detection
 export async function detectTech(url) {
     let response;
@@ -124,7 +282,7 @@ export async function detectTech(url) {
             headers = Object.fromEntries(response.headers);
         } catch (primaryError) {
             // If primary proxy fails, try fallback
-            console.warn('Primary proxy failed, trying fallback:', primaryError.message);
+            logger.warn('Primary proxy failed, trying fallback', primaryError);
             const fallbackUrl = `${FALLBACK_CORS_PROXY}${encodeURIComponent(url)}`;
             response = await fetch(fallbackUrl);
             
@@ -204,169 +362,6 @@ export async function detectTech(url) {
     }
 }
 
-// Subdomain Scanner
-export async function scanSubdomains(domain, testSubdomains = null) {
-    try {
-        // Common subdomain prefixes to check
-        const commonSubdomains = testSubdomains || [
-            'www', 'mail', 'ftp', 'smtp', 'pop', 'api',
-            'dev', 'staging', 'test', 'beta', 'alpha',
-            'admin', 'blog', 'shop', 'store', 'secure',
-            'portal', 'support', 'help', 'docs', 'kb',
-            'forum', 'community', 'cdn', 'media', 'img',
-            'images', 'static', 'assets', 'files', 'download',
-            'app', 'mobile', 'm', 'web', 'cloud',
-            'status', 'stats', 'analytics', 'metrics',
-            'git', 'svn', 'jenkins', 'ci', 'build',
-            'auth', 'login', 'sso', 'vpn', 'remote'
-        ];
-
-        const results = {
-            domain: domain,
-            timestamp: new Date().toISOString(),
-            subdomains: [],
-            total: 0
-        };
-
-        // Function to check if a subdomain resolves
-        async function checkSubdomain(subdomain) {
-            try {
-                const response = await fetch(`https://dns.google/resolve?name=${subdomain}.${domain}`);
-                if (!response.ok) {
-                    return null;
-                }
-                const data = await response.json();
-                if (data.Status === 0 && data.Answer && data.Answer.length > 0) {
-                    return {
-                        name: `${subdomain}.${domain}`,
-                        records: data.Answer.map(record => ({
-                            type: record.type,
-                            data: record.data
-                        }))
-                    };
-                }
-                return null;
-            } catch (error) {
-                console.warn(`Failed to check subdomain ${subdomain}:`, error);
-                return null;
-            }
-        }
-
-        // Check subdomains in parallel with rate limiting
-        const batchSize = 5;
-        for (let i = 0; i < commonSubdomains.length; i += batchSize) {
-            const batch = commonSubdomains.slice(i, i + batchSize);
-            const results_batch = await Promise.all(
-                batch.map(subdomain => checkSubdomain(subdomain))
-            );
-            
-            // Add successful results
-            results.subdomains.push(...results_batch.filter(r => r !== null));
-            
-            // Rate limiting - skip in test mode
-            if (!testSubdomains && i + batchSize < commonSubdomains.length) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-        }
-
-        results.total = results.subdomains.length;
-        return results;
-    } catch (error) {
-        throw new Error(`Failed to scan subdomains: ${error.message}`);
-    }
-}
-
-// CMS Detection
-export async function detectCMS(url) {
-    let response;
-    let html;
-    let headers;
-
-    try {
-        // Try primary proxy first
-        try {
-            const proxyUrl = `${CORS_PROXY}${encodeURIComponent(url)}`;
-            response = await fetch(proxyUrl);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            html = await response.text();
-            headers = Object.fromEntries(response.headers);
-        } catch (primaryError) {
-            // If primary proxy fails, try fallback
-            console.warn('Primary proxy failed, trying fallback:', primaryError.message);
-            const fallbackUrl = `${FALLBACK_CORS_PROXY}${encodeURIComponent(url)}`;
-            response = await fetch(fallbackUrl);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            html = await response.text();
-            headers = Object.fromEntries(response.headers);
-        }
-
-        let cmsName = null;
-        let confidence = 0;
-        let version = null;
-
-        // WordPress detection patterns
-        const wpPatterns = {
-            meta: /<meta[^>]*wp-[^>]*>/i,
-            links: /wp-(?:content|includes)/i,
-            generator: /<meta[^>]*generator[^>]*WordPress/i,
-            scripts: /wp-(?:content|includes|json)/i,
-            headers: {
-                'x-powered-by': /wordpress/i,
-                'link': /wp-json/i
-            }
-        };
-
-        // Check WordPress patterns
-        let wpMatches = 0;
-        const totalPatterns = Object.keys(wpPatterns).length + 1; // +1 for headers check
-
-        if (wpPatterns.meta.test(html)) wpMatches++;
-        if (wpPatterns.links.test(html)) wpMatches++;
-        if (wpPatterns.generator.test(html)) wpMatches++;
-        if (wpPatterns.scripts.test(html)) wpMatches++;
-
-        // Check headers
-        for (const [headerName, pattern] of Object.entries(wpPatterns.headers)) {
-            if (headers[headerName] && pattern.test(headers[headerName])) {
-                wpMatches++;
-            }
-        }
-
-        // Calculate confidence
-        confidence = Math.round((wpMatches / totalPatterns) * 100);
-
-        // If confidence is above 40%, consider it WordPress
-        if (confidence > 40) {
-            cmsName = 'wordpress';
-
-            // Try to detect version
-            const versionMatch = html.match(/<meta[^>]*generator[^>]*WordPress\s+([\d.]+)/i);
-            if (versionMatch) {
-                version = versionMatch[1];
-            }
-        }
-
-        return {
-            url: url,
-            timestamp: new Date().toISOString(),
-            detected: confidence > 40,
-            cms: cmsName,
-            confidence: confidence,
-            version: version
-        };
-    } catch (error) {
-        throw new Error(`Failed to detect CMS: ${error.message}`);
-    }
-}
-
 // HTTP Header Analysis
 export async function analyzeHeaders(url) {
     let response;
@@ -385,7 +380,7 @@ export async function analyzeHeaders(url) {
             headers = Object.fromEntries(response.headers);
         } catch (primaryError) {
             // If primary proxy fails, try fallback
-            console.warn('Primary proxy failed, trying fallback:', primaryError.message);
+            logger.warn('Primary proxy failed, trying fallback', primaryError);
             const fallbackUrl = `${FALLBACK_CORS_PROXY}${encodeURIComponent(url)}`;
             response = await fetch(fallbackUrl);
             
@@ -514,7 +509,7 @@ export async function dnsLookup(domain) {
                     }));
                 }
             } catch (error) {
-                console.warn(`Failed to fetch ${type} records:`, error);
+                logger.warn(`Failed to fetch ${type} records`, error);
             }
         }));
 
@@ -543,7 +538,7 @@ export async function analyzeRobots(url) {
             robotsContent = await response.text();
         } catch (primaryError) {
             // If primary proxy fails, try fallback
-            console.warn('Primary proxy failed, trying fallback:', primaryError.message);
+            logger.warn('Primary proxy failed, trying fallback', primaryError);
             const fallbackUrl = `${FALLBACK_CORS_PROXY}${encodeURIComponent(robotsUrl)}`;
             const response = await fetch(fallbackUrl);
             
@@ -612,7 +607,7 @@ export async function findEmails(url) {
             html = await response.text();
         } catch (primaryError) {
             // If primary proxy fails, try fallback
-            console.warn('Primary proxy failed, trying fallback:', primaryError.message);
+            logger.warn('Primary proxy failed, trying fallback', primaryError);
             const fallbackUrl = `${FALLBACK_CORS_PROXY}${encodeURIComponent(url)}`;
             response = await fetch(fallbackUrl);
             
