@@ -56,7 +56,8 @@ const CMS_PATTERNS = {
 };
 
 // CORS Proxy configuration
-const CORS_PROXY = 'https://corsproxy.io/?' // Alternative proxies if this fails: 'https://api.codetabs.com/v1/proxy?quest='
+const CORS_PROXY = 'https://corsproxy.io/?'; // Primary proxy
+const FALLBACK_CORS_PROXY = 'https://api.codetabs.com/v1/proxy?quest='; // Fallback proxy
 
 // Tool button click handlers
 toolButtons.forEach(button => {
@@ -200,23 +201,45 @@ export async function detectCMS(url) {
 
 export async function checkHeaders(url) {
     try {
-        const proxyUrl = `${CORS_PROXY}${encodeURIComponent(url)}`;
-        const response = await fetch(proxyUrl, { method: 'HEAD' });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        // Try primary proxy first
+        try {
+            const proxyUrl = `${CORS_PROXY}${encodeURIComponent(url)}`;
+            const response = await fetch(proxyUrl);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
-        const headers = {};
-        for (const [key, value] of response.headers) {
-            headers[key] = value;
+            const headers = {};
+            for (const [key, value] of response.headers) {
+                headers[key] = value;
+            }
+            
+            return {
+                url: url,
+                timestamp: new Date().toISOString(),
+                headers: headers
+            };
+        } catch (primaryError) {
+            // If primary proxy fails, try fallback
+            const fallbackUrl = `${FALLBACK_CORS_PROXY}${encodeURIComponent(url)}`;
+            const response = await fetch(fallbackUrl);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const headers = {};
+            for (const [key, value] of response.headers) {
+                headers[key] = value;
+            }
+            
+            return {
+                url: url,
+                timestamp: new Date().toISOString(),
+                headers: headers
+            };
         }
-        
-        return {
-            url: url,
-            timestamp: new Date().toISOString(),
-            headers: headers
-        };
     } catch (error) {
         throw new Error(`Failed to fetch headers: ${error.message}`);
     }
