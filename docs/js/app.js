@@ -33,9 +33,8 @@ toolButtons.forEach(button => {
             // Update current tool
             currentTool = button.dataset.tool;
             
-            // Reset form and results
+            // Only reset form, keep results visible
             form.reset();
-            hideResults();
             hideError();
         });
     }
@@ -56,7 +55,7 @@ form.addEventListener('submit', async (e) => {
         const url = new URL(targetUrl);
         
         hideError();
-        hideResults();
+        hideResults(); // Only hide results when starting a new scan
         showLoading();
 
         let results;
