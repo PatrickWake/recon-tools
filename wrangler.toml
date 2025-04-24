@@ -1,0 +1,9 @@
+name = "recon-tools"
+main = "src/worker.js"
+compatibility_date = "2024-03-01"
+
+[env.production]
+name = "recon-tools-prod"
+
+[env.development]
+name = "recon-tools-dev" 
