@@ -82,6 +82,9 @@ form.addEventListener('submit', async (e) => {
             case 'email-finder':
                 results = await findEmails(targetUrl);
                 break;
+            case 'ssl-check':
+                results = await analyzeSslTls(targetUrl);
+                break;
             default:
                 throw new Error('Tool not implemented');
         }
@@ -646,6 +649,72 @@ export async function findEmails(url) {
     }
 }
 
+// SSL/TLS Analysis
+export async function analyzeSslTls(url) {
+    try {
+        // SSL Labs API endpoint
+        const API_URL = 'https://api.ssllabs.com/api/v3';
+        
+        // Start new scan
+        const startScan = await fetch(`${API_URL}/analyze?host=${encodeURIComponent(new URL(url).hostname)}&startNew=on&all=done`);
+        const scanData = await startScan.json();
+        
+        if (scanData.status !== 'READY' && scanData.status !== 'ERROR') {
+            // Poll until complete
+            let pollCount = 0;
+            const maxPolls = 60; // 5 minutes maximum
+            
+            while (pollCount < maxPolls) {
+                await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+                
+                const pollResponse = await fetch(`${API_URL}/analyze?host=${encodeURIComponent(new URL(url).hostname)}`);
+                const pollData = await pollResponse.json();
+                
+                if (pollData.status === 'READY' || pollData.status === 'ERROR') {
+                    scanData = pollData;
+                    break;
+                }
+                
+                pollCount++;
+            }
+        }
+        
+        if (scanData.status === 'ERROR') {
+            throw new Error(scanData.statusMessage || 'SSL scan failed');
+        }
+        
+        const results = {
+            url: url,
+            timestamp: new Date().toISOString(),
+            grade: scanData.endpoints[0].grade,
+            details: {
+                protocols: scanData.endpoints[0].details.protocols.map(p => ({
+                    name: p.name,
+                    version: p.version
+                })),
+                certificates: scanData.certs.map(cert => ({
+                    subject: cert.subject,
+                    issuer: cert.issuer,
+                    validFrom: cert.notBefore,
+                    validTo: cert.notAfter,
+                    keyStrength: cert.keyStrength
+                })),
+                vulnerabilities: {
+                    heartbleed: scanData.endpoints[0].details.heartbleed,
+                    poodle: scanData.endpoints[0].details.poodle,
+                    freak: scanData.endpoints[0].details.freak,
+                    logjam: scanData.endpoints[0].details.logjam,
+                    drownVulnerable: scanData.endpoints[0].details.drownVulnerable
+                }
+            }
+        };
+        
+        return results;
+    } catch (error) {
+        throw new Error(`Failed to analyze SSL/TLS: ${error.message}`);
+    }
+}
+
 // UI Helper functions
 function showLoading() {
     loadingDiv.classList.remove('hidden');
@@ -793,6 +862,31 @@ function showResults(data) {
             });
         } else {
             lines.push('No email addresses found');
+        }
+    } else if (currentTool === 'ssl-check') {
+        lines = [
+            `SSL/TLS Analysis for ${data.url}`,
+            `Timestamp: ${data.timestamp}\n`,
+            `Overall Grade: ${data.grade}\n`,
+            'Supported Protocols:'
+        ];
+        
+        data.details.protocols.forEach(protocol => {
+            lines.push(`  • ${protocol.name} ${protocol.version}`);
+        });
+        
+        lines.push('\nCertificate Details:');
+        data.details.certificates.forEach(cert => {
+            lines.push(`  • Subject: ${cert.subject}`);
+            lines.push(`    Issuer: ${cert.issuer}`);
+            lines.push(`    Valid From: ${cert.validFrom}`);
+            lines.push(`    Valid To: ${cert.validTo}`);
+            lines.push(`    Key Strength: ${cert.keyStrength} bits\n`);
+        });
+        
+        lines.push('Vulnerability Assessment:');
+        for (const [vuln, status] of Object.entries(data.details.vulnerabilities)) {
+            lines.push(`  • ${vuln}: ${status ? '❌ Vulnerable' : '✅ Not Vulnerable'}`);
         }
     } else {
         lines = ['Unsupported tool'];
