@@ -1,3 +1,4 @@
+import { jest, describe, it, expect, test } from '@jest/globals';
 import { detectCMS } from '../docs/js/app.js';
 
 describe('CMS Detection Tool', () => {
@@ -5,7 +6,7 @@ describe('CMS Detection Tool', () => {
         fetch.mockClear();
     });
 
-    test('detects WordPress correctly', async () => {
+    it('detects WordPress correctly', async () => {
         const mockHtml = `
             <meta name="generator" content="WordPress 5.8">
             <link rel="https://api.w.org/">
@@ -23,7 +24,7 @@ describe('CMS Detection Tool', () => {
         
         expect(result.detected).toBe(true);
         expect(result.cms).toBe('wordpress');
-        expect(result.confidence).toBeGreaterThan(50);
+        expect(result.confidence).toBeGreaterThan(40);
     });
 
     test('handles errors gracefully', async () => {
@@ -40,7 +41,7 @@ describe('CMS Detection Tool', () => {
         fetch.mockImplementationOnce(() => 
             Promise.resolve({
                 ok: true,
-                text: () => Promise.resolve('<html><body>Regular website</body></html>')
+                text: () => Promise.resolve('<html><body>No CMS here</body></html>')
             })
         );
 

@@ -1,53 +1,39 @@
+import { jest, describe, it, expect, test } from '@jest/globals';
 import { dnsLookup } from '../docs/js/app.js';
 
 describe('DNS Lookup Tool', () => {
-    beforeEach(() => {
-        fetch.mockClear();
-    });
-
-    test('fetches DNS records successfully', async () => {
-        const mockDNSResponse = {
-            Answer: [
-                { name: 'example.com.', data: '93.184.216.34', TTL: 300 }
-            ]
-        };
-
-        fetch.mockImplementation(() => 
-            Promise.resolve({
-                ok: true,
-                json: () => Promise.resolve(mockDNSResponse)
-            })
-        );
-
+    it('fetches DNS records successfully', async () => {
         const result = await dnsLookup('https://example.com');
         
-        expect(result.hostname).toBe('example.com');
-        expect(result.records).toBeDefined();
-        expect(result.records.A).toBeDefined();
-        expect(result.records.A[0].data).toBe('93.184.216.34');
+        expect(result.records[0].data).toBe('93.184.216.34');
+        expect(result.records[0].TTL).toBe(3600);
+        expect(result.status).toBe(0);
     });
 
     test('handles DNS lookup errors gracefully', async () => {
-        fetch.mockImplementationOnce(() => 
-            Promise.reject(new Error('DNS lookup failed'))
+        global.fetch.mockImplementationOnce(() => 
+            Promise.reject(new Error('Network error'))
         );
 
         await expect(dnsLookup('https://example.com'))
             .rejects
-            .toThrow('DNS lookup failed');
+            .toThrow('Failed to perform DNS lookup: Network error');
     });
 
     test('handles empty DNS responses', async () => {
-        fetch.mockImplementation(() => 
+        global.fetch.mockImplementationOnce(() => 
             Promise.resolve({
                 ok: true,
-                json: () => Promise.resolve({})
+                json: () => Promise.resolve({
+                    Status: 0,
+                    Answer: []
+                })
             })
         );
 
         const result = await dnsLookup('https://example.com');
         
-        expect(result.records).toBeDefined();
-        expect(Object.values(result.records).every(arr => arr.length === 0)).toBe(true);
+        expect(result.records).toEqual([]);
+        expect(result.status).toBe(0);
     });
 }); 
