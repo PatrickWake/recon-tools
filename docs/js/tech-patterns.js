@@ -52,13 +52,13 @@ export const TECH_PATTERNS = {
     },
     server: {
         nginx: {
-            headers: ['server: nginx', 'x-nginx']
+            headers: ['nginx', 'x-nginx']
         },
         apache: {
-            headers: ['server: apache', 'x-powered-by: php']
+            headers: ['apache', 'x-powered-by: php']
         },
         iis: {
-            headers: ['server: microsoft-iis', 'x-powered-by: asp.net']
+            headers: ['microsoft-iis', 'asp.net']
         }
     },
     advertising: {

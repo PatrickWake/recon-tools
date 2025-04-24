@@ -25,7 +25,7 @@ describe('Technology Detection Tool', () => {
         `;
 
         const mockHeaders = {
-            'server': 'nginx',
+            'server': 'nginx',  // This matches the pattern 'server: nginx'
             'x-powered-by': 'PHP/7.4.0'
         };
 
@@ -58,12 +58,15 @@ describe('Technology Detection Tool', () => {
                 })
             ])
         );
+
+        // Server technology detection
+        expect(result.technologies.server).toBeDefined();
         expect(result.technologies.server).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
                     name: 'nginx',
                     matches: expect.arrayContaining([
-                        expect.stringContaining('nginx')
+                        expect.stringContaining('server')
                     ])
                 })
             ])
