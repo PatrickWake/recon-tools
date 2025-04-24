@@ -53,14 +53,24 @@ form.addEventListener('submit', async (e) => {
 
     try {
         // Validate URL
-        new URL(targetUrl);
+        const url = new URL(targetUrl);
         
         hideError();
         hideResults();
         showLoading();
 
-        const techResults = await detectTech(targetUrl);
-        showResults(techResults);
+        let results;
+        switch (currentTool) {
+            case 'tech-detect':
+                results = await detectTech(targetUrl);
+                break;
+            case 'subdomain-scan':
+                results = await scanSubdomains(url.hostname);
+                break;
+            default:
+                throw new Error('Tool not implemented');
+        }
+        showResults(results);
     } catch (error) {
         if (error instanceof TypeError && error.message.includes('URL')) {
             showError('Please enter a valid URL (e.g., https://example.com)');
@@ -172,6 +182,78 @@ export async function detectTech(url) {
     }
 }
 
+// Subdomain Scanner
+export async function scanSubdomains(domain) {
+    try {
+        // Common subdomain prefixes to check
+        const commonSubdomains = [
+            'www', 'mail', 'ftp', 'smtp', 'pop', 'api',
+            'dev', 'staging', 'test', 'beta', 'alpha',
+            'admin', 'blog', 'shop', 'store', 'secure',
+            'portal', 'support', 'help', 'docs', 'kb',
+            'forum', 'community', 'cdn', 'media', 'img',
+            'images', 'static', 'assets', 'files', 'download',
+            'app', 'mobile', 'm', 'web', 'cloud',
+            'status', 'stats', 'analytics', 'metrics',
+            'git', 'svn', 'jenkins', 'ci', 'build',
+            'auth', 'login', 'sso', 'vpn', 'remote'
+        ];
+
+        const results = {
+            domain: domain,
+            timestamp: new Date().toISOString(),
+            subdomains: [],
+            total: 0
+        };
+
+        // Function to check if a subdomain resolves
+        async function checkSubdomain(subdomain) {
+            try {
+                const response = await fetch(`https://dns.google/resolve?name=${subdomain}.${domain}`);
+                if (!response.ok) {
+                    return null;
+                }
+                const data = await response.json();
+                if (data.Status === 0 && data.Answer && data.Answer.length > 0) {
+                    return {
+                        name: `${subdomain}.${domain}`,
+                        records: data.Answer.map(record => ({
+                            type: record.type,
+                            data: record.data
+                        }))
+                    };
+                }
+                return null;
+            } catch (error) {
+                console.warn(`Failed to check subdomain ${subdomain}:`, error);
+                return null;
+            }
+        }
+
+        // Check subdomains in parallel with rate limiting
+        const batchSize = 5;
+        for (let i = 0; i < commonSubdomains.length; i += batchSize) {
+            const batch = commonSubdomains.slice(i, i + batchSize);
+            const results_batch = await Promise.all(
+                batch.map(subdomain => checkSubdomain(subdomain))
+            );
+            
+            // Add successful results
+            results.subdomains.push(...results_batch.filter(r => r !== null));
+            
+            // Rate limiting
+            if (i + batchSize < commonSubdomains.length) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+
+        results.total = results.subdomains.length;
+        return results;
+    } catch (error) {
+        throw new Error(`Failed to scan subdomains: ${error.message}`);
+    }
+}
+
 // UI Helper functions
 function showLoading() {
     loadingDiv.classList.remove('hidden');
@@ -191,26 +273,49 @@ function hideError() {
 }
 
 function showResults(data) {
-    const lines = [
-        `Technology Stack Analysis for ${data.url}`,
-        `Timestamp: ${data.timestamp}\n`
-    ];
+    let lines;
 
-    for (const [category, techs] of Object.entries(data.technologies)) {
-        if (techs.length > 0) {
-            lines.push(`${category.charAt(0).toUpperCase() + category.slice(1)}:`);
-            techs.forEach(tech => {
-                lines.push(`  • ${tech.name}`);
-                tech.matches.forEach(match => {
-                    lines.push(`    - ${match}`);
+    if (currentTool === 'tech-detect') {
+        lines = [
+            `Technology Stack Analysis for ${data.url}`,
+            `Timestamp: ${data.timestamp}\n`
+        ];
+
+        for (const [category, techs] of Object.entries(data.technologies)) {
+            if (techs.length > 0) {
+                lines.push(`${category.charAt(0).toUpperCase() + category.slice(1)}:`);
+                techs.forEach(tech => {
+                    lines.push(`  • ${tech.name}`);
+                    tech.matches.forEach(match => {
+                        lines.push(`    - ${match}`);
+                    });
+                });
+                lines.push('');
+            }
+        }
+
+        if (Object.keys(data.technologies).length === 0) {
+            lines.push('No technologies detected');
+        }
+    } else if (currentTool === 'subdomain-scan') {
+        lines = [
+            `Subdomain Scan Results for ${data.domain}`,
+            `Timestamp: ${data.timestamp}`,
+            `Found ${data.total} active subdomains:\n`
+        ];
+
+        if (data.total === 0) {
+            lines.push('No active subdomains found');
+        } else {
+            data.subdomains.forEach(subdomain => {
+                lines.push(`• ${subdomain.name}`);
+                subdomain.records.forEach(record => {
+                    lines.push(`  - ${record.type}: ${record.data}`);
                 });
             });
-            lines.push('');
         }
-    }
-
-    if (lines.length === 2) {
-        lines.push('No technologies detected');
+    } else {
+        lines = ['Unsupported tool'];
     }
 
     resultsContent.textContent = lines.join('\n');
