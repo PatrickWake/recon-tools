@@ -26,4 +26,4 @@ export default defineConfig({
       use: { browserName: 'webkit' },
     },
   ],
-}); 
+});

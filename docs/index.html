@@ -1,112 +1,153 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Recon Tools - Cloud-Native Security Analysis</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body class="bg-gray-100 min-h-screen">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body class="bg-gray-100 min-h-screen">
     <nav class="bg-gray-800 text-white p-4">
-        <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold">Recon Tools</h1>
-            <a href="https://github.com/pwake/recon-tools" target="_blank" class="hover:text-gray-300">
-                <i class="fab fa-github text-xl"></i>
-            </a>
-        </div>
+      <div class="container mx-auto flex justify-between items-center">
+        <h1 class="text-xl font-bold">Recon Tools</h1>
+        <a href="https://github.com/pwake/recon-tools" target="_blank" class="hover:text-gray-300">
+          <i class="fab fa-github text-xl"></i>
+        </a>
+      </div>
     </nav>
 
     <main class="container mx-auto p-8">
-        <div class="grid md:grid-cols-2 gap-6">
-            <!-- Tool Selection -->
-            <div class="bg-white rounded shadow p-6">
-                <h2 class="text-xl font-semibold mb-4">Select Tool</h2>
-                <div class="space-y-4">
-                    <button class="tool-btn active w-full text-left p-3 rounded bg-blue-50 border border-blue-200 hover:bg-blue-100" data-tool="cms-detect">
-                        <i class="fas fa-cube mr-2"></i>
-                        CMS Detector
-                    </button>
-                    <button class="tool-btn w-full text-left p-3 rounded bg-gray-50 border border-gray-200 hover:bg-gray-100" data-tool="header-check">
-                        <i class="fas fa-list-alt mr-2"></i>
-                        HTTP Header Analyzer
-                    </button>
-                    <button class="tool-btn w-full text-left p-3 rounded bg-gray-50 border border-gray-200 hover:bg-gray-100" data-tool="dns-lookup">
-                        <i class="fas fa-network-wired mr-2"></i>
-                        DNS Lookup
-                    </button>
-                    <button class="tool-btn w-full text-left p-3 rounded bg-gray-50 border border-gray-200 hover:bg-gray-100" data-tool="robots-check">
-                        <i class="fas fa-robot mr-2"></i>
-                        Robots.txt Analyzer
-                    </button>
-                    <button class="tool-btn w-full text-left p-3 rounded bg-gray-50 border border-gray-200 hover:bg-gray-100" data-tool="email-finder">
-                        <i class="fas fa-envelope mr-2"></i>
-                        Email Finder
-                    </button>
-                    <button class="tool-btn w-full text-left p-3 rounded bg-gray-50 border border-gray-200 hover:bg-gray-100" data-tool="ssl-check">
-                        <i class="fas fa-lock mr-2"></i>
-                        SSL/TLS Analyzer
-                    </button>
-                    <button class="tool-btn w-full text-left p-3 rounded bg-gray-50 border border-gray-200 hover:bg-gray-100" data-tool="tech-detect">
-                        <i class="fas fa-code mr-2"></i>
-                        Technology Stack Detector
-                    </button>
-                    <button class="tool-btn w-full text-left p-3 rounded bg-gray-50 border border-gray-200 hover:bg-gray-100" data-tool="subdomain-scan">
-                        <i class="fas fa-sitemap mr-2"></i>
-                        Subdomain Scanner
-                    </button>
-                    <button class="tool-btn w-full text-left p-3 rounded bg-gray-50 border border-gray-200 opacity-50" disabled>
-                        <i class="fas fa-unlink mr-2"></i>
-                        Broken Link Checker (Coming Soon)
-                    </button>
-                </div>
-            </div>
-
-            <!-- Input and Results -->
-            <div class="bg-white rounded shadow p-6">
-                <h2 class="text-xl font-semibold mb-4">Analysis</h2>
-                <form id="analysis-form" class="mb-6">
-                    <div class="mb-4">
-                        <label for="target-url" class="block text-sm font-medium text-gray-700 mb-2">Target URL</label>
-                        <input type="url" id="target-url" required
-                            class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                            placeholder="https://example.com">
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 focus:ring-2">
-                        Analyze
-                    </button>
-                </form>
-
-                <div id="results" class="hidden">
-                    <h3 class="font-semibold mb-2">Results</h3>
-                    <div id="results-content" class="bg-gray-50 p-4 rounded border">
-                        <pre class="whitespace-pre-wrap"></pre>
-                    </div>
-                </div>
-
-                <div id="error" class="hidden">
-                    <div class="bg-red-50 border-red-200 text-red-700 p-4 rounded">
-                        <p id="error-message"></p>
-                    </div>
-                </div>
-
-                <div id="loading" class="hidden">
-                    <div class="flex justify-center items-center py-4">
-                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    </div>
-                </div>
-            </div>
+      <div class="grid md:grid-cols-2 gap-6">
+        <!-- Tool Selection -->
+        <div class="bg-white rounded shadow p-6">
+          <h2 class="text-xl font-semibold mb-4">Select Tool</h2>
+          <div class="space-y-4">
+            <button
+              class="tool-btn active w-full text-left p-3 rounded bg-blue-50 border border-blue-200 hover:bg-blue-100"
+              data-tool="cms-detect"
+            >
+              <i class="fas fa-cube mr-2"></i>
+              CMS Detector
+            </button>
+            <button
+              class="tool-btn w-full text-left p-3 rounded bg-gray-50 border border-gray-200 hover:bg-gray-100"
+              data-tool="header-check"
+            >
+              <i class="fas fa-list-alt mr-2"></i>
+              HTTP Header Analyzer
+            </button>
+            <button
+              class="tool-btn w-full text-left p-3 rounded bg-gray-50 border border-gray-200 hover:bg-gray-100"
+              data-tool="dns-lookup"
+            >
+              <i class="fas fa-network-wired mr-2"></i>
+              DNS Lookup
+            </button>
+            <button
+              class="tool-btn w-full text-left p-3 rounded bg-gray-50 border border-gray-200 hover:bg-gray-100"
+              data-tool="robots-check"
+            >
+              <i class="fas fa-robot mr-2"></i>
+              Robots.txt Analyzer
+            </button>
+            <button
+              class="tool-btn w-full text-left p-3 rounded bg-gray-50 border border-gray-200 hover:bg-gray-100"
+              data-tool="email-finder"
+            >
+              <i class="fas fa-envelope mr-2"></i>
+              Email Finder
+            </button>
+            <button
+              class="tool-btn w-full text-left p-3 rounded bg-gray-50 border border-gray-200 hover:bg-gray-100"
+              data-tool="ssl-check"
+            >
+              <i class="fas fa-lock mr-2"></i>
+              SSL/TLS Analyzer
+            </button>
+            <button
+              class="tool-btn w-full text-left p-3 rounded bg-gray-50 border border-gray-200 hover:bg-gray-100"
+              data-tool="tech-detect"
+            >
+              <i class="fas fa-code mr-2"></i>
+              Technology Stack Detector
+            </button>
+            <button
+              class="tool-btn w-full text-left p-3 rounded bg-gray-50 border border-gray-200 hover:bg-gray-100"
+              data-tool="subdomain-scan"
+            >
+              <i class="fas fa-sitemap mr-2"></i>
+              Subdomain Scanner
+            </button>
+            <button
+              class="tool-btn w-full text-left p-3 rounded bg-gray-50 border border-gray-200 opacity-50"
+              disabled
+            >
+              <i class="fas fa-unlink mr-2"></i>
+              Broken Link Checker (Coming Soon)
+            </button>
+          </div>
         </div>
+
+        <!-- Input and Results -->
+        <div class="bg-white rounded shadow p-6">
+          <h2 class="text-xl font-semibold mb-4">Analysis</h2>
+          <form id="analysis-form" class="mb-6">
+            <div class="mb-4">
+              <label for="target-url" class="block text-sm font-medium text-gray-700 mb-2"
+                >Target URL</label
+              >
+              <input
+                type="url"
+                id="target-url"
+                required
+                class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                placeholder="https://example.com"
+              />
+            </div>
+            <button
+              type="submit"
+              class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 focus:ring-2"
+            >
+              Analyze
+            </button>
+          </form>
+
+          <div id="results" class="hidden">
+            <h3 class="font-semibold mb-2">Results</h3>
+            <div id="results-content" class="bg-gray-50 p-4 rounded border">
+              <pre class="whitespace-pre-wrap"></pre>
+            </div>
+          </div>
+
+          <div id="error" class="hidden">
+            <div class="bg-red-50 border-red-200 text-red-700 p-4 rounded">
+              <p id="error-message"></p>
+            </div>
+          </div>
+
+          <div id="loading" class="hidden">
+            <div class="flex justify-center items-center py-4">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
 
     <footer class="bg-gray-800 text-white py-4 mt-8">
-        <div class="container mx-auto px-4 text-center space-y-2">
-            <p>Built with ❤️ using JavaScript</p>
-            <p class="text-sm text-gray-400">Version 1.0.0 | Last Updated: March 2024</p>
-            <p class="text-xs text-gray-500">All tools run entirely in your browser - no server-side processing</p>
-        </div>
+      <div class="container mx-auto px-4 text-center space-y-2">
+        <p>Built with ❤️ using JavaScript</p>
+        <p class="text-sm text-gray-400">Version 1.0.0 | Last Updated: March 2024</p>
+        <p class="text-xs text-gray-500">
+          All tools run entirely in your browser - no server-side processing
+        </p>
+      </div>
     </footer>
 
     <script type="module" src="js/app.js"></script>
-</body>
-</html> 
+  </body>
+</html>

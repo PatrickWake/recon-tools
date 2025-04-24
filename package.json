@@ -41,8 +41,13 @@
   },
   "jest": {
     "testEnvironment": "jsdom",
-    "setupFiles": ["<rootDir>/tests/setup.js"],
-    "moduleDirectories": ["node_modules", "docs/js"],
+    "setupFiles": [
+      "<rootDir>/tests/setup.js"
+    ],
+    "moduleDirectories": [
+      "node_modules",
+      "docs/js"
+    ],
     "collectCoverageFrom": [
       "docs/js/**/*.js"
     ],
@@ -64,4 +69,4 @@
       "prettier --write"
     ]
   }
-} 
+}

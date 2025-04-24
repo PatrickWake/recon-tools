@@ -2,7 +2,7 @@ name: PR Preview Deployment
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 permissions:
   contents: read
@@ -12,7 +12,7 @@ permissions:
 
 # Allow one concurrent deployment per PR
 concurrency:
-  group: "pages-preview-${{ github.event.pull_request.number }}"
+  group: 'pages-preview-${{ github.event.pull_request.number }}'
   cancel-in-progress: true
 
 jobs:
@@ -21,47 +21,47 @@ jobs:
     environment:
       name: pr-preview-${{ github.event.pull_request.number }}
       url: ${{ steps.deployment.outputs.page_url }}
-    
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Run tests
-      run: npm test
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Setup Pages
-      uses: actions/configure-pages@v4
-      
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: './docs'
-        name: pr-preview-${{ github.event.pull_request.number }}
-        
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
-      with:
-        artifact_name: pr-preview-${{ github.event.pull_request.number }}
-        preview: true
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
 
-    - name: Comment PR
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const url = '${{ steps.deployment.outputs.page_url }}';
-          const message = `✨ Preview deployment is ready!\n\n[View Preview](${url})`;
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: message
-          }); 
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './docs'
+          name: pr-preview-${{ github.event.pull_request.number }}
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: pr-preview-${{ github.event.pull_request.number }}
+          preview: true
+
+      - name: Comment PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deployment.outputs.page_url }}';
+            const message = `✨ Preview deployment is ready!\n\n[View Preview](${url})`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            });

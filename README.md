@@ -36,17 +36,20 @@ recon-tools/
 ## Development
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/PatrickWake/recon-tools.git
    cd recon-tools
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Run tests:
+
    ```bash
    npm test
    ```
@@ -56,41 +59,49 @@ recon-tools/
 ## Tool Descriptions
 
 ### CMS Detection
+
 - Detects popular Content Management Systems
 - Provides confidence scores and version information
 - Supports WordPress detection with multiple indicators
 
 ### Technology Stack Detection
+
 - Identifies web frameworks, libraries, and tools
 - Categorizes technologies by type
 - Shows evidence of detected technologies
 
 ### HTTP Header Analysis
+
 - Categorizes security, caching, and CORS headers
 - Identifies server technologies
 - Highlights missing security headers
 
 ### DNS Record Lookup
+
 - Queries A, AAAA, MX, NS, TXT, and SOA records
 - Shows TTL values and record data
 - Handles multiple records per type
 
 ### Subdomain Scanner
+
 - Checks common subdomain patterns
 - Verifies active subdomains
 - Shows DNS records for discovered subdomains
 
 ### Robots.txt Analyzer
+
 - Parses robots.txt directives
 - Lists sitemaps
 - Shows crawling rules by user agent
 
 ### Email Finder
+
 - Extracts email addresses from web pages
 - Finds addresses in mailto: links
 - Normalizes and deduplicates results
 
 ### SSL/TLS Checker
+
 - Grades SSL/TLS configuration
 - Lists supported protocols
 - Checks for common vulnerabilities (Heartbleed, POODLE, etc.)
@@ -98,50 +109,56 @@ recon-tools/
 
 ## License
 
-MIT License 
+MIT License
 
-let currentTool = 'cms-detect'; 
+let currentTool = 'cms-detect';
 
 if (currentTool === 'tech-detect') {
-    // handle tech detection results
+// handle tech detection results
 } else if (currentTool === 'subdomain-scan') {
-    // handle subdomain scan results
+// handle subdomain scan results
 } else {
-    lines = ['Unsupported tool'];
-} 
+lines = ['Unsupported tool'];
+}
 
 # Feature Improvements
 
 ## New Features
+
 - Added SSL/TLS checker tool with comprehensive vulnerability scanning
 - Improved UI: Results stay visible when switching between tools
 
 ## Bug Fixes
+
 - Fixed robots.txt parsing to handle URLs with colons
 - Fixed CMS detection edge cases
 
 ## Test Coverage
+
 - Added SSL/TLS checker tests
 - Added email finder tests
 - Added robots.txt analyzer tests
 - Added DNS lookup tests
 
 ## UI/UX Improvements
+
 - Results persist between tool switches for better comparison
 - Cleaner state management
 - Better error handling
 
 ## Testing
+
 - All tests passing
 - Manual testing completed
-- No regressions found 
+- No regressions found
 
 ## Code Quality
 
 This project uses several tools to maintain code quality:
+
 - ESLint for JavaScript linting
 - Prettier for code formatting
 - SonarCloud for continuous code quality analysis
 - Jest for unit testing with coverage requirements
 
-You can view the detailed code quality metrics on our [SonarCloud Dashboard](https://sonarcloud.io/project/overview?id=patrickwake_recon-tools). 
+You can view the detailed code quality metrics on our [SonarCloud Dashboard](https://sonarcloud.io/project/overview?id=patrickwake_recon-tools).

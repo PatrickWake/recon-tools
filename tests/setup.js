@@ -26,10 +26,11 @@ document.body.innerHTML = `
 
 // Mock fetch responses
 const mockResponses = {
-    'https://corsproxy.io/?https%3A%2F%2Fexample.com': {
-        ok: true,
-        status: 200,
-        text: () => Promise.resolve(`
+  'https://corsproxy.io/?https%3A%2F%2Fexample.com': {
+    ok: true,
+    status: 200,
+    text: () =>
+      Promise.resolve(`
             <!DOCTYPE html>
             <html>
                 <head>
@@ -42,44 +43,46 @@ const mockResponses = {
                 </body>
             </html>
         `),
-        headers: new Map([
-            ['server', 'nginx'],
-            ['content-type', 'text/html'],
-        ])
-    },
-    'https://corsproxy.io/?https%3A%2F%2Fexample.com%2Frobots.txt': {
-        ok: true,
-        status: 200,
-        text: () => Promise.resolve(`
+    headers: new Map([
+      ['server', 'nginx'],
+      ['content-type', 'text/html'],
+    ]),
+  },
+  'https://corsproxy.io/?https%3A%2F%2Fexample.com%2Frobots.txt': {
+    ok: true,
+    status: 200,
+    text: () =>
+      Promise.resolve(`
             User-agent: *
             Disallow: /admin/
             Allow: /
             
             Sitemap: https://example.com/sitemap.xml
-        `)
-    },
-    'https://dns.google/resolve?name=example.com': {
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve({
-            Status: 0,
-            Answer: [
-                {
-                    name: 'example.com.',
-                    type: 1,
-                    TTL: 3600,
-                    data: '93.184.216.34'
-                }
-            ]
-        })
-    }
+        `),
+  },
+  'https://dns.google/resolve?name=example.com': {
+    ok: true,
+    status: 200,
+    json: () =>
+      Promise.resolve({
+        Status: 0,
+        Answer: [
+          {
+            name: 'example.com.',
+            type: 1,
+            TTL: 3600,
+            data: '93.184.216.34',
+          },
+        ],
+      }),
+  },
 };
 
 // Mock fetch globally
 global.fetch = jest.fn((url) => {
-    const response = mockResponses[url];
-    if (response) {
-        return Promise.resolve(response);
-    }
-    return Promise.reject(new Error(`No mock response for ${url}`));
-}); 
+  const response = mockResponses[url];
+  if (response) {
+    return Promise.resolve(response);
+  }
+  return Promise.reject(new Error(`No mock response for ${url}`));
+});
