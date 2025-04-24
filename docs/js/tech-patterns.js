@@ -1,107 +1,88 @@
 export const TECH_PATTERNS = {
     frameworks: {
         react: {
-            scripts: ['react.js', 'react.min.js', 'react.production.min.js'],
-            meta: ['react-root', 'react-modal-root'],
+            scripts: ['react.', 'react-dom.'],
             html: ['data-reactroot', 'data-reactid']
         },
         vue: {
-            scripts: ['vue.js', 'vue.min.js'],
-            meta: ['vue', 'nuxt'],
+            scripts: ['vue.', 'nuxt'],
             html: ['data-v-', '__vue__']
         },
         angular: {
-            scripts: ['angular.js', 'angular.min.js'],
-            meta: ['angular'],
-            html: ['ng-app', 'ng-controller', 'ng-model']
+            scripts: ['angular.'],
+            html: ['ng-', '[ng-']
         },
         jquery: {
-            scripts: ['jquery.js', 'jquery.min.js'],
-            meta: ['jQuery'],
+            scripts: ['jquery.'],
             html: ['jquery']
         }
     },
     analytics: {
         'google-analytics': {
-            scripts: ['google-analytics.com/analytics.js', 'ga.js', 'gtag'],
-            meta: ['google-analytics', 'UA-'],
-            html: ['GoogleAnalyticsObject']
+            scripts: ['google-analytics.com', 'ga.js', 'gtag'],
+            html: ['GoogleAnalyticsObject', 'ga(', 'gtag(']
         },
         'google-tag-manager': {
-            scripts: ['googletagmanager.com/gtm.js'],
-            meta: ['GTM-'],
-            html: ['google_tag_manager']
+            scripts: ['googletagmanager.com'],
+            html: ['google_tag_manager', 'GTM-']
         }
     },
     cdn: {
         cloudflare: {
-            headers: ['cf-ray', 'cf-cache-status', '__cfduid'],
+            headers: ['cf-ray', 'cf-cache-status'],
             html: ['cloudflare']
         },
         akamai: {
-            headers: ['x-akamai-transformed', 'akamai-origin-hop'],
-            html: []
+            headers: ['x-akamai-transformed', 'akamai-origin-hop']
         },
         fastly: {
-            headers: ['fastly-io-info', 'x-fastly', 'fastly-ssl'],
-            html: []
+            headers: ['fastly-io-info', 'x-fastly']
         }
     },
     security: {
-        'content-security-policy': {
-            headers: ['content-security-policy', 'content-security-policy-report-only'],
-            html: []
-        },
-        'x-frame-options': {
-            headers: ['x-frame-options'],
-            html: []
-        },
-        'x-xss-protection': {
-            headers: ['x-xss-protection'],
-            html: []
+        'security-headers': {
+            headers: [
+                'content-security-policy',
+                'x-frame-options',
+                'x-xss-protection',
+                'x-content-type-options',
+                'strict-transport-security'
+            ]
         }
     },
     server: {
         nginx: {
-            headers: ['server: nginx', 'x-nginx'],
-            html: []
+            headers: ['server: nginx', 'x-nginx']
         },
         apache: {
-            headers: ['server: apache', 'x-powered-by: php'],
-            html: []
+            headers: ['server: apache', 'x-powered-by: php']
         },
         iis: {
-            headers: ['server: microsoft-iis', 'x-powered-by: asp.net'],
-            html: []
+            headers: ['server: microsoft-iis', 'x-powered-by: asp.net']
         }
     },
     advertising: {
-        'google-adsense': {
-            scripts: ['pagead2.googlesyndication.com', 'adsbygoogle.js'],
-            meta: ['adsbygoogle'],
+        'google-ads': {
+            scripts: ['pagead2.googlesyndication.com', 'adsbygoogle'],
             html: ['adsbygoogle']
         },
         'facebook-pixel': {
-            scripts: ['connect.facebook.net/en_US/fbevents.js'],
-            meta: ['fb:app_id'],
-            html: ['fbq']
+            scripts: ['connect.facebook.net/fbevents.js'],
+            html: ['fbq(']
         }
     },
     ecommerce: {
         'woocommerce': {
-            scripts: ['woocommerce', 'wc-'],
-            meta: ['woocommerce'],
-            html: ['woocommerce', 'wc_', 'wc-']
+            scripts: ['woocommerce'],
+            html: ['woocommerce', 'wc_']
         },
         'shopify': {
-            scripts: ['shopify', '/shop.js'],
-            meta: ['shopify'],
-            html: ['shopify']
+            scripts: ['shopify'],
+            html: ['Shopify.']
         },
         'magento': {
-            scripts: ['mage/', 'magento'],
-            meta: ['magento'],
-            html: ['magento', 'Mage.']
+            scripts: ['magento'],
+            html: ['Mage.']
         }
     }
 }; 
