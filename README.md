@@ -77,3 +77,13 @@ Response:
 ## License
 
 MIT License 
+
+let currentTool = 'cms-detect'; 
+
+if (currentTool === 'tech-detect') {
+    // handle tech detection results
+} else if (currentTool === 'subdomain-scan') {
+    // handle subdomain scan results
+} else {
+    lines = ['Unsupported tool'];
+} 
