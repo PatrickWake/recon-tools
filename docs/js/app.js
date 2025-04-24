@@ -1,6 +1,3 @@
-// Configuration
-const WORKER_URL = 'https://recon-tools.pwake.workers.dev';
-
 // State management
 let currentTool = 'cms-detect';
 
@@ -13,6 +10,50 @@ const errorDiv = document.getElementById('error');
 const errorMessage = document.getElementById('error-message');
 const loadingDiv = document.getElementById('loading');
 const toolButtons = document.querySelectorAll('.tool-btn');
+
+// CMS Patterns for detection
+const CMS_PATTERNS = {
+    wordpress: {
+        meta: [
+            '<meta name="generator" content="WordPress',
+            '<link rel="https://api.w.org/"',
+        ],
+        paths: ['/wp-content/', '/wp-includes/', '/wp-admin/'],
+        scripts: ['wp-embed.min.js', 'wp-emoji-release.min.js'],
+    },
+    drupal: {
+        meta: [
+            '<meta name="generator" content="Drupal',
+            'jQuery.extend(Drupal.settings',
+        ],
+        paths: ['/sites/default/', '/sites/all/'],
+        scripts: ['drupal.js', 'drupal.min.js'],
+    },
+    joomla: {
+        meta: [
+            '<meta name="generator" content="Joomla!',
+            'name="viewport"',
+        ],
+        paths: ['/templates/', '/media/jui/'],
+        scripts: ['mootools.js', 'media/jui/js/jquery.min.js'],
+    },
+    shopify: {
+        meta: [
+            'cdn.shopify.com',
+            'Shopify.theme',
+        ],
+        paths: ['/cdn/shop/products/', '/cdn/shop/files/'],
+        scripts: ['shopify.js', 'shopify.min.js'],
+    },
+    wix: {
+        meta: [
+            'X-Wix-Published-Version',
+            'X-Wix-Application-Instance',
+        ],
+        paths: ['/_api/', '/_partials/'],
+        scripts: ['wix-code.js', 'wix-stores.js'],
+    },
+};
 
 // Tool button click handlers
 toolButtons.forEach(button => {
@@ -49,20 +90,101 @@ form.addEventListener('submit', async (e) => {
         hideResults();
         showLoading();
 
-        const response = await fetch(`${WORKER_URL}/${currentTool}?url=${encodeURIComponent(targetUrl)}`);
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || 'Analysis failed');
+        switch (currentTool) {
+            case 'cms-detect':
+                const cmsResults = await detectCMS(targetUrl);
+                showResults(cmsResults);
+                break;
+            case 'header-check':
+                const headerResults = await checkHeaders(targetUrl);
+                showResults(headerResults);
+                break;
+            default:
+                throw new Error('Tool not implemented');
         }
-
-        showResults(data);
     } catch (error) {
         showError(error.message);
     } finally {
         hideLoading();
     }
 });
+
+// Tool Implementations
+async function detectCMS(url) {
+    try {
+        // Use a CORS proxy to fetch the target URL
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        const response = await fetch(proxyUrl);
+        const html = await response.text();
+
+        const results = {
+            url: url,
+            timestamp: new Date().toISOString(),
+            detected: false,
+            cms: null,
+            confidence: 0,
+            matches: [],
+        };
+
+        for (const [cms, patterns] of Object.entries(CMS_PATTERNS)) {
+            let matches = 0;
+            const foundPatterns = [];
+
+            // Check patterns
+            patterns.meta.forEach(pattern => {
+                if (html.includes(pattern)) {
+                    matches++;
+                    foundPatterns.push(`Meta: ${pattern}`);
+                }
+            });
+
+            patterns.scripts.forEach(pattern => {
+                if (html.includes(pattern)) {
+                    matches++;
+                    foundPatterns.push(`Script: ${pattern}`);
+                }
+            });
+
+            patterns.paths.forEach(pattern => {
+                if (html.includes(pattern)) {
+                    matches++;
+                    foundPatterns.push(`Path: ${pattern}`);
+                }
+            });
+
+            const totalPatterns = patterns.meta.length + patterns.scripts.length + patterns.paths.length;
+            const confidence = Math.round((matches / totalPatterns) * 100);
+
+            if (confidence > results.confidence) {
+                results.detected = true;
+                results.cms = cms;
+                results.confidence = confidence;
+                results.matches = foundPatterns;
+            }
+        }
+
+        return results;
+    } catch (error) {
+        throw new Error(`Failed to analyze URL: ${error.message}`);
+    }
+}
+
+async function checkHeaders(url) {
+    try {
+        // Use a CORS proxy to fetch headers
+        const proxyUrl = `https://api.allorigins.win/head?url=${encodeURIComponent(url)}`;
+        const response = await fetch(proxyUrl);
+        const data = await response.json();
+        
+        return {
+            url: url,
+            timestamp: new Date().toISOString(),
+            headers: data.headers || {},
+        };
+    } catch (error) {
+        throw new Error(`Failed to fetch headers: ${error.message}`);
+    }
+}
 
 // UI Helper functions
 function showLoading() {
@@ -83,7 +205,6 @@ function hideError() {
 }
 
 function showResults(data) {
-    // Format the results based on the tool
     let formattedResults = '';
     
     switch (currentTool) {
@@ -135,6 +256,5 @@ ${Object.entries(data.headers)
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', () => {
-    // Set example URL
     urlInput.value = 'https://example.com';
 }); 
