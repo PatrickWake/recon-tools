@@ -70,6 +70,9 @@ form.addEventListener('submit', async (e) => {
             case 'subdomain-scan':
                 results = await scanSubdomains(url.hostname);
                 break;
+            case 'header-check':
+                results = await analyzeHeaders(targetUrl);
+                break;
             default:
                 throw new Error('Tool not implemented');
         }
@@ -348,6 +351,127 @@ export async function detectCMS(url) {
     }
 }
 
+// HTTP Header Analysis
+export async function analyzeHeaders(url) {
+    let response;
+    let headers;
+
+    try {
+        // Try primary proxy first
+        try {
+            const proxyUrl = `${CORS_PROXY}${encodeURIComponent(url)}`;
+            response = await fetch(proxyUrl);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            headers = Object.fromEntries(response.headers);
+        } catch (primaryError) {
+            // If primary proxy fails, try fallback
+            console.warn('Primary proxy failed, trying fallback:', primaryError.message);
+            const fallbackUrl = `${FALLBACK_CORS_PROXY}${encodeURIComponent(url)}`;
+            response = await fetch(fallbackUrl);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            headers = Object.fromEntries(response.headers);
+        }
+
+        // Categorize headers
+        const categories = {
+            security: [
+                'content-security-policy',
+                'x-frame-options',
+                'x-xss-protection',
+                'x-content-type-options',
+                'strict-transport-security',
+                'permissions-policy',
+                'referrer-policy'
+            ],
+            caching: [
+                'cache-control',
+                'etag',
+                'last-modified',
+                'expires',
+                'age',
+                'pragma'
+            ],
+            cors: [
+                'access-control-allow-origin',
+                'access-control-allow-methods',
+                'access-control-allow-headers',
+                'access-control-expose-headers',
+                'access-control-max-age',
+                'access-control-allow-credentials'
+            ],
+            compression: [
+                'content-encoding',
+                'accept-encoding',
+                'transfer-encoding'
+            ],
+            server: [
+                'server',
+                'x-powered-by',
+                'x-aspnet-version',
+                'x-runtime'
+            ]
+        };
+
+        const results = {
+            url: url,
+            timestamp: new Date().toISOString(),
+            headers: {},
+            categorized: {}
+        };
+
+        // Store all headers
+        for (const [key, value] of Object.entries(headers)) {
+            results.headers[key.toLowerCase()] = value;
+        }
+
+        // Categorize headers
+        for (const [category, headerList] of Object.entries(categories)) {
+            results.categorized[category] = {};
+            for (const header of headerList) {
+                if (results.headers[header.toLowerCase()]) {
+                    results.categorized[category][header] = results.headers[header.toLowerCase()];
+                }
+            }
+            // Remove empty categories
+            if (Object.keys(results.categorized[category]).length === 0) {
+                delete results.categorized[category];
+            }
+        }
+
+        // Add uncategorized headers
+        results.categorized.other = {};
+        for (const [header, value] of Object.entries(results.headers)) {
+            let isCategorized = false;
+            for (const headerList of Object.values(categories)) {
+                if (headerList.some(h => h.toLowerCase() === header.toLowerCase())) {
+                    isCategorized = true;
+                    break;
+                }
+            }
+            if (!isCategorized) {
+                results.categorized.other[header] = value;
+            }
+        }
+
+        // Remove empty other category
+        if (Object.keys(results.categorized.other).length === 0) {
+            delete results.categorized.other;
+        }
+
+        return results;
+    } catch (error) {
+        throw new Error(`Failed to analyze headers: ${error.message}`);
+    }
+}
+
 // UI Helper functions
 function showLoading() {
     loadingDiv.classList.remove('hidden');
@@ -422,6 +546,23 @@ function showResults(data) {
                     lines.push(`  - ${record.type}: ${record.data}`);
                 });
             });
+        }
+    } else if (currentTool === 'header-check') {
+        lines = [
+            `HTTP Header Analysis for ${data.url}`,
+            `Timestamp: ${data.timestamp}\n`
+        ];
+
+        for (const [category, headers] of Object.entries(data.categorized)) {
+            lines.push(`${category.charAt(0).toUpperCase() + category.slice(1)} Headers:`);
+            for (const [header, value] of Object.entries(headers)) {
+                lines.push(`  • ${header}: ${value}`);
+            }
+            lines.push('');
+        }
+
+        if (Object.keys(data.categorized).length === 0) {
+            lines.push('No headers found');
         }
     } else {
         lines = ['Unsupported tool'];
