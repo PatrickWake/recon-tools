@@ -3,129 +3,106 @@ import { analyzeSslTls } from '../docs/js/app.js';
 
 describe('SSL/TLS Analyzer Tool', () => {
     beforeEach(() => {
-        // Clear all mocks before each test
-        jest.clearAllMocks();
         global.fetch = jest.fn();
     });
 
-    test('correctly analyzes SSL/TLS configuration', async () => {
-        const mockScanResponse = {
-            status: 'READY',
-            endpoints: [{
-                grade: 'A+',
-                details: {
-                    protocols: [
-                        { name: 'TLS', version: '1.3' },
-                        { name: 'TLS', version: '1.2' }
-                    ],
-                    heartbleed: false,
-                    poodle: false,
-                    freak: false,
-                    logjam: false,
-                    drownVulnerable: false
-                }
-            }],
-            certs: [{
-                subject: 'CN=example.com',
-                issuer: 'CN=Let\'s Encrypt Authority X3',
-                notBefore: 1612345678000,
-                notAfter: 1617654321000,
-                keyStrength: 2048
-            }]
-        };
+    const mockScanData = {
+        status: 'READY',
+        endpoints: [{
+            grade: 'A+',
+            details: {
+                protocols: [
+                    { name: 'TLS', version: '1.3' },
+                    { name: 'TLS', version: '1.2' }
+                ],
+                heartbleed: false,
+                poodle: false,
+                vulnBeast: false
+            }
+        }]
+    };
 
-        // Mock successful response
-        global.fetch.mockResolvedValueOnce({
-            ok: true,
-            json: () => Promise.resolve(mockScanResponse)
-        });
+    test('correctly analyzes SSL/TLS configuration', async () => {
+        global.fetch
+            .mockResolvedValueOnce(Promise.resolve({
+                json: () => Promise.resolve(mockScanData)
+            }));
 
         const result = await analyzeSslTls('https://example.com');
-
-        // Verify the results
-        expect(result).toHaveProperty('url', 'https://example.com');
-        expect(result).toHaveProperty('timestamp');
-        expect(result).toHaveProperty('grade', 'A+');
         
-        // Check protocols
-        expect(result.details.protocols).toEqual([
-            { name: 'TLS', version: '1.3' },
-            { name: 'TLS', version: '1.2' }
-        ]);
-
-        // Check certificate
-        expect(result.details.certificates[0]).toEqual({
-            subject: 'CN=example.com',
-            issuer: 'CN=Let\'s Encrypt Authority X3',
-            validFrom: 1612345678000,
-            validTo: 1617654321000,
-            keyStrength: 2048
-        });
-
-        // Check vulnerabilities
-        expect(result.details.vulnerabilities).toEqual({
-            heartbleed: false,
-            poodle: false,
-            freak: false,
-            logjam: false,
-            drownVulnerable: false
+        expect(result).toEqual({
+            url: 'https://example.com',
+            timestamp: expect.any(String),
+            grade: 'A+',
+            protocols: [
+                { name: 'TLS', version: '1.3' },
+                { name: 'TLS', version: '1.2' }
+            ],
+            vulnerabilities: {
+                heartbleed: false,
+                poodle: false,
+                vulnBeast: false
+            }
         });
     });
 
-    test('handles scan in progress correctly', async () => {
-        const inProgressResponse = {
-            status: 'IN_PROGRESS',
+    test('handles in-progress scans correctly', async () => {
+        const inProgressData = { status: 'IN_PROGRESS' };
+        
+        global.fetch
+            .mockResolvedValueOnce(Promise.resolve({
+                json: () => Promise.resolve(inProgressData)
+            }))
+            .mockResolvedValueOnce(Promise.resolve({
+                json: () => Promise.resolve(mockScanData)
+            }));
+
+        const result = await analyzeSslTls('https://example.com', 100, 2);
+        expect(result.grade).toBe('A+');
+    });
+
+    test('handles scan timeout', async () => {
+        const inProgressData = { status: 'IN_PROGRESS' };
+        
+        global.fetch
+            .mockResolvedValue(Promise.resolve({
+                json: () => Promise.resolve(inProgressData)
+            }));
+
+        await expect(analyzeSslTls('https://example.com', 100, 1))
+            .rejects
+            .toThrow('SSL scan timed out');
+    });
+
+    test('handles API errors correctly', async () => {
+        const errorData = {
+            status: 'ERROR',
+            statusMessage: 'Invalid hostname'
+        };
+
+        global.fetch
+            .mockResolvedValueOnce(Promise.resolve({
+                json: () => Promise.resolve(errorData)
+            }));
+
+        await expect(analyzeSslTls('https://example.com'))
+            .rejects
+            .toThrow('SSL Labs API Error: Invalid hostname');
+    });
+
+    test('handles invalid responses', async () => {
+        const invalidData = {
+            status: 'READY',
             endpoints: []
         };
 
-        const completedResponse = {
-            status: 'READY',
-            endpoints: [{
-                grade: 'A',
-                details: {
-                    protocols: [{ name: 'TLS', version: '1.2' }],
-                    heartbleed: false,
-                    poodle: false,
-                    freak: false,
-                    logjam: false,
-                    drownVulnerable: false
-                }
-            }],
-            certs: [{
-                subject: 'CN=example.com',
-                issuer: 'CN=Let\'s Encrypt Authority X3',
-                notBefore: 1612345678000,
-                notAfter: 1617654321000,
-                keyStrength: 2048
-            }]
-        };
-
-        // Mock responses for polling
         global.fetch
-            .mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(inProgressResponse)
-            })
-            .mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(completedResponse)
-            });
+            .mockResolvedValueOnce(Promise.resolve({
+                json: () => Promise.resolve(invalidData)
+            }));
 
-        const result = await analyzeSslTls('https://example.com', 100);
-        expect(result.grade).toBe('A');
-    }, 15000);
-
-    test('handles errors gracefully', async () => {
-        global.fetch.mockResolvedValueOnce({
-            ok: true,
-            json: () => Promise.resolve({
-                status: 'ERROR',
-                statusMessage: 'Unable to resolve hostname'
-            })
-        });
-
-        await expect(analyzeSslTls('https://nonexistent.example.com'))
+        await expect(analyzeSslTls('https://example.com'))
             .rejects
-            .toThrow('Failed to analyze SSL/TLS: Unable to resolve hostname');
+            .toThrow('Invalid response from SSL Labs API');
     });
 }); 

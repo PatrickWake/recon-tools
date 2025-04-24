@@ -649,24 +649,29 @@ export async function findEmails(url) {
 }
 
 // SSL/TLS Analysis
-export async function analyzeSslTls(url, pollDelay = 5000) {
+export async function analyzeSslTls(url, pollDelay = 5000, maxPolls = 60) {
     try {
+        // Extract hostname from URL
+        const hostname = new URL(url).hostname;
+        if (!hostname) {
+            throw new Error('Invalid hostname');
+        }
+
         // SSL Labs API endpoint
         const API_URL = 'https://api.ssllabs.com/api/v3';
         
         // Start new scan
-        const startScan = await fetch(`${API_URL}/analyze?host=${encodeURIComponent(new URL(url).hostname)}&startNew=on&all=done`);
+        const startScan = await fetch(`${API_URL}/analyze?host=${encodeURIComponent(hostname)}&startNew=on&all=done`);
         let scanData = await startScan.json();
         
         if (scanData.status !== 'READY' && scanData.status !== 'ERROR') {
             // Poll until complete
             let pollCount = 0;
-            const maxPolls = 60; // 5 minutes maximum
             
             while (pollCount < maxPolls) {
-                await new Promise(resolve => setTimeout(resolve, pollDelay)); // Configurable delay
+                await new Promise(resolve => setTimeout(resolve, pollDelay));
                 
-                const pollResponse = await fetch(`${API_URL}/analyze?host=${encodeURIComponent(new URL(url).hostname)}`);
+                const pollResponse = await fetch(`${API_URL}/analyze?host=${encodeURIComponent(hostname)}`);
                 scanData = await pollResponse.json();
                 
                 if (scanData.status === 'READY' || scanData.status === 'ERROR') {
@@ -675,40 +680,41 @@ export async function analyzeSslTls(url, pollDelay = 5000) {
                 
                 pollCount++;
             }
+            
+            if (pollCount >= maxPolls) {
+                throw new Error('SSL scan timed out');
+            }
         }
         
         if (scanData.status === 'ERROR') {
-            throw new Error(scanData.statusMessage || 'SSL scan failed');
+            throw new Error(`SSL Labs API Error: ${scanData.statusMessage || 'Unknown error'}`);
         }
         
-        const results = {
+        // Ensure we have the required data
+        if (!scanData.endpoints || !scanData.endpoints[0]) {
+            throw new Error('Invalid response from SSL Labs API');
+        }
+
+        const endpoint = scanData.endpoints[0];
+        
+        return {
             url: url,
             timestamp: new Date().toISOString(),
-            grade: scanData.endpoints[0].grade,
-            details: {
-                protocols: scanData.endpoints[0].details.protocols.map(p => ({
-                    name: p.name,
-                    version: p.version
-                })),
-                certificates: scanData.certs.map(cert => ({
-                    subject: cert.subject,
-                    issuer: cert.issuer,
-                    validFrom: cert.notBefore,
-                    validTo: cert.notAfter,
-                    keyStrength: cert.keyStrength
-                })),
-                vulnerabilities: {
-                    heartbleed: scanData.endpoints[0].details.heartbleed,
-                    poodle: scanData.endpoints[0].details.poodle,
-                    freak: scanData.endpoints[0].details.freak,
-                    logjam: scanData.endpoints[0].details.logjam,
-                    drownVulnerable: scanData.endpoints[0].details.drownVulnerable
-                }
+            grade: endpoint.grade,
+            protocols: endpoint.details.protocols.map(p => ({
+                name: p.name,
+                version: p.version
+            })),
+            vulnerabilities: {
+                heartbleed: endpoint.details.heartbleed || false,
+                poodle: endpoint.details.poodle || false,
+                vulnBeast: endpoint.details.vulnBeast || false
             }
         };
-        
-        return results;
     } catch (error) {
+        if (error.message.includes('SSL Labs API Error:')) {
+            throw error;
+        }
         throw new Error(`Failed to analyze SSL/TLS: ${error.message}`);
     }
 }
@@ -869,21 +875,12 @@ function showResults(data) {
             'Supported Protocols:'
         ];
         
-        data.details.protocols.forEach(protocol => {
+        data.protocols.forEach(protocol => {
             lines.push(`  • ${protocol.name} ${protocol.version}`);
         });
         
-        lines.push('\nCertificate Details:');
-        data.details.certificates.forEach(cert => {
-            lines.push(`  • Subject: ${cert.subject}`);
-            lines.push(`    Issuer: ${cert.issuer}`);
-            lines.push(`    Valid From: ${cert.validFrom}`);
-            lines.push(`    Valid To: ${cert.validTo}`);
-            lines.push(`    Key Strength: ${cert.keyStrength} bits\n`);
-        });
-        
-        lines.push('Vulnerability Assessment:');
-        for (const [vuln, status] of Object.entries(data.details.vulnerabilities)) {
+        lines.push('\nVulnerability Assessment:');
+        for (const [vuln, status] of Object.entries(data.vulnerabilities)) {
             lines.push(`  • ${vuln}: ${status ? '❌ Vulnerable' : '✅ Not Vulnerable'}`);
         }
     } else {
