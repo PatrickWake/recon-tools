@@ -11,6 +11,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  security-events: write
 
 # Allow only one concurrent deployment
 concurrency:
@@ -18,48 +19,156 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  run-unit-tests-and-coverage:
+  code-quality:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
         
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Run tests
-      run: npm test
-      
-    - name: Upload coverage reports
-      uses: codecov/codecov-action@v4
+      - name: Run ESLint
+        run: npx eslint . --max-warnings=0
+        
+      - name: Check formatting
+        run: npx prettier --check .
+        
+      - name: Run SonarCloud scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-  deploy-to-github-pages:
-    needs: run-unit-tests-and-coverage
+  security:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run security audit
+        run: npm audit
+        
+      - name: Run CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          languages: javascript
+          
+      - name: Secret scanning
+        uses: gitleaks/gitleaks-action@v2
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run tests with coverage
+        run: npm test -- --coverage --coverageThreshold='{"global":{"branches":80,"functions":80,"lines":80,"statements":80}}'
+        
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        
+      - name: Run browser tests
+        run: |
+          npx playwright install --with-deps
+          npm run test:e2e
+
+  performance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v9
+        with:
+          urls: |
+            https://patrickwake.github.io/recon-tools/
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+          
+      - name: Check bundle size
+        uses: preactjs/compressed-size-action@v2
+        with:
+          pattern: 'docs/js/*.js'
+          strip-hash: ''
+
+  deploy-preview:
+    needs: [code-quality, security, test, performance]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     environment:
-      name: github-pages
+      name: preview
       url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Setup Pages
-      uses: actions/configure-pages@v4
+      - uses: actions/checkout@v4
       
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: './docs'
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
         
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4 
+      - name: Upload preview artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './docs'
+          name: github-pages-preview
+          
+      - name: Deploy preview
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          preview: true
+          artifact_name: github-pages-preview
+
+  deploy-production:
+    needs: [code-quality, security, test, performance]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+        
+      - name: Upload production artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './docs'
+          
+      - name: Deploy to production
+        id: deployment
+        uses: actions/deploy-pages@v4 
