@@ -1,5 +1,6 @@
 // State management
 let currentTool = 'cms-detect';
+let lastScannedTool = null;
 
 // Import technology patterns
 import { TECH_PATTERNS } from './tech-patterns.js';
@@ -55,7 +56,10 @@ form.addEventListener('submit', async (e) => {
         const url = new URL(targetUrl);
         
         hideError();
-        hideResults(); // Only hide results when starting a new scan
+        // Only hide results if scanning with the same tool
+        if (currentTool === lastScannedTool) {
+            hideResults();
+        }
         showLoading();
 
         let results;
@@ -88,6 +92,7 @@ form.addEventListener('submit', async (e) => {
                 throw new Error('Tool not implemented');
         }
         showResults(results);
+        lastScannedTool = currentTool;
     } catch (error) {
         if (error instanceof TypeError && error.message.includes('URL')) {
             showError('Please enter a valid URL (e.g., https://example.com)');
