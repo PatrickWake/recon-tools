@@ -95,12 +95,10 @@ describe('HTTP Header Analyzer Tool', () => {
       ['content-type', 'text/html'],
     ]);
 
-    global.fetch
-      .mockRejectedValueOnce(new Error('Primary proxy failed'))
-      .mockResolvedValueOnce({
-        ok: true,
-        headers: mockHeaders,
-      });
+    global.fetch.mockRejectedValueOnce(new Error('Primary proxy failed')).mockResolvedValueOnce({
+      ok: true,
+      headers: mockHeaders,
+    });
 
     const result = await analyzeHeaders('https://example.com');
 
@@ -108,4 +106,4 @@ describe('HTTP Header Analyzer Tool', () => {
     expect(result.headers).toHaveProperty('server', 'nginx/1.18.0');
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
-}); 
+});

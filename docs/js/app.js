@@ -6,8 +6,43 @@ import { TECH_PATTERNS } from './tech-patterns.js';
 import { logger } from './logger.js';
 
 // DOM Elements
-const urlInput = document.getElementById('target-url');
-const toolButtons = document.querySelectorAll('.tool-btn');
+let urlInput;
+let toolButtons;
+let loadingDiv;
+let resultsDiv;
+let errorDiv;
+let resultsContent;
+let errorMessage;
+
+// Initialize DOM elements
+function initializeDOMElements() {
+  urlInput = document.getElementById('target-url');
+  toolButtons = document.querySelectorAll('.tool-btn');
+  loadingDiv = document.getElementById('loading');
+  resultsDiv = document.getElementById('results');
+  errorDiv = document.getElementById('error');
+  resultsContent = document.getElementById('results-content');
+  errorMessage = document.getElementById('error-message');
+
+  // Add event listeners if in browser environment
+  if (typeof window !== 'undefined') {
+    // Tool button click handlers
+    toolButtons?.forEach((button) => {
+      if (!button.disabled) {
+        button.addEventListener('click', handleToolSelection);
+      }
+    });
+
+    // Form submission handler
+    const analysisForm = document.getElementById('analysis-form');
+    analysisForm?.addEventListener('submit', handleFormSubmit);
+
+    // Set default URL
+    if (urlInput) {
+      urlInput.value = 'https://example.com';
+    }
+  }
+}
 
 // CORS Proxy configuration
 const CORS_PROXY = 'https://corsproxy.io/?'; // Primary proxy
@@ -15,121 +50,166 @@ const FALLBACK_CORS_PROXY = 'https://api.codetabs.com/v1/proxy?quest='; // Fallb
 
 // Tool selection handler
 export function handleToolSelection(event) {
-  const button = event.target;
-  const allButtons = button.parentElement.querySelectorAll('.tool-btn');
-  const selectedTool = button.dataset.tool;
-  
-  // Update active state
-  allButtons.forEach((btn) => {
-    btn.classList.remove('active', 'bg-blue-50', 'border-blue-200');
-    btn.classList.add('bg-gray-50', 'border-gray-200');
-  });
-  button.classList.remove('bg-gray-50', 'border-gray-200');
-  button.classList.add('active', 'bg-blue-50', 'border-blue-200');
+  const buttons = document.querySelectorAll('.tool-btn');
+  buttons.forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  currentTool = event.target.dataset.tool;
+}
 
-  // Update current tool
-  currentTool = selectedTool;
+// UI Helper functions
+function showLoading() {
+  const loadingDiv = document.getElementById('loading');
+  const resultsDiv = document.getElementById('results');
+  const errorDiv = document.getElementById('error');
+  
+  if (loadingDiv) loadingDiv.classList.remove('hidden');
+  if (resultsDiv) resultsDiv.classList.add('hidden');
+  if (errorDiv) errorDiv.classList.add('hidden');
+}
+
+function hideLoading() {
+  const loadingDiv = document.getElementById('loading');
+  if (loadingDiv) loadingDiv.classList.add('hidden');
+}
+
+function showError(message) {
+  const errorDiv = document.getElementById('error');
+  const errorMessage = document.getElementById('error-message');
+  const resultsDiv = document.getElementById('results');
+  const loadingDiv = document.getElementById('loading');
+  
+  if (errorDiv) errorDiv.classList.remove('hidden');
+  if (errorMessage) errorMessage.textContent = message;
+  if (resultsDiv) resultsDiv.classList.add('hidden');
+  if (loadingDiv) loadingDiv.classList.add('hidden');
+}
+
+function hideError() {
+  const errorDiv = document.getElementById('error');
+  const errorMessage = document.getElementById('error-message');
+  
+  if (errorDiv) errorDiv.classList.add('hidden');
+  if (errorMessage) errorMessage.textContent = '';
+}
+
+function showResults(results) {
+  const resultsDiv = document.getElementById('results');
+  const resultsContent = document.getElementById('results-content');
+  const errorDiv = document.getElementById('error');
+  const loadingDiv = document.getElementById('loading');
+  
+  if (resultsDiv) resultsDiv.classList.remove('hidden');
+  if (resultsContent) resultsContent.textContent = JSON.stringify(results, null, 2);
+  if (errorDiv) errorDiv.classList.add('hidden');
+  if (loadingDiv) loadingDiv.classList.add('hidden');
+}
+
+function hideResults() {
+  const resultsDiv = document.getElementById('results');
+  const resultsContent = document.getElementById('results-content');
+  
+  if (resultsDiv) resultsDiv.classList.add('hidden');
+  if (resultsContent) resultsContent.textContent = '';
 }
 
 // Form submission handler
 export async function handleFormSubmit(event) {
   event.preventDefault();
-  
-  const targetUrl = document.getElementById('target-url')?.value;
-  
-  // Show loading state immediately
-  showLoading();
-  hideResults();
-  hideError();
 
-  // Validate URL
-  if (!targetUrl || !targetUrl.trim()) {
-    hideLoading();
-    hideResults();
-    showError('Invalid URL. Please enter a valid URL including http:// or https://');
-    return;
-  }
+  // Get DOM elements
+  const urlInput = document.getElementById('target-url');
+  const loadingDiv = document.getElementById('loading');
+  const resultsDiv = document.getElementById('results');
+  const errorDiv = document.getElementById('error');
+  const resultsContent = document.querySelector('#results-content pre');
+  const errorMessage = document.getElementById('error-message');
+  const activeToolBtn = document.querySelector('.tool-btn.active');
 
-  let url;
   try {
-    url = new URL(targetUrl.trim());
-    if (!url.protocol.startsWith('http')) {
-      throw new Error('Invalid protocol');
+    // Hide any existing results or errors
+    if (resultsDiv) resultsDiv.classList.add('hidden');
+    if (errorDiv) errorDiv.classList.add('hidden');
+    if (loadingDiv) loadingDiv.classList.remove('hidden');
+
+    // Validate URL
+    const url = urlInput.value.trim();
+    if (!url || !isValidUrl(url)) {
+      throw new Error('Invalid URL. Please enter a valid URL including http:// or https://');
     }
-  } catch (e) {
-    hideLoading();
-    hideResults();
-    showError('Invalid URL. Please enter a valid URL including http:// or https://');
-    return;
-  }
 
-  try {
+    // Get selected tool
+    const selectedTool = activeToolBtn ? activeToolBtn.dataset.tool : 'cms-detect';
     let results;
-    const isTestMode = process.env.NODE_ENV === 'test';
-    const selectedTool = currentTool || 'cms-detect'; // Default to cms-detect if no tool is selected
-    
+
+    // Call appropriate tool function
     switch (selectedTool) {
       case 'cms-detect':
-        results = await detectCMS(url.href, isTestMode);
+        results = await detectCMS(url);
         results.title = 'CMS Detection Results';
         break;
       case 'header-check':
-        results = await analyzeHeaders(url.href);
+        results = await analyzeHeaders(url);
         results.title = 'HTTP Headers Analysis';
         break;
       case 'dns-lookup':
-        results = await dnsLookup(url.hostname);
+        results = await dnsLookup(url);
         results.title = 'DNS Lookup Results';
         break;
-      case 'robots-check':
-        results = await analyzeRobots(url.href);
-        results.title = 'Robots.txt Analysis';
-        break;
-      case 'ssl-check':
-        results = await analyzeSslTls(url.href);
-        results.title = 'SSL/TLS Analysis';
-        break;
-      case 'tech-detect':
-        results = await detectTech(url.href);
-        results.title = 'Technology Stack Detection';
-        break;
       case 'subdomain-scan':
-        results = await scanSubdomains(url.hostname);
+        results = await scanSubdomains(url);
         results.title = 'Subdomain Scan Results';
         break;
+      case 'tech-detect':
+        results = await detectTech(url);
+        results.title = 'Technology Detection Results';
+        break;
+      case 'robots-check':
+        results = await analyzeRobots(url);
+        results.title = 'Robots.txt Analysis';
+        break;
       case 'email-finder':
-        results = await findEmails(url.href);
-        results.title = 'Email Addresses Found';
+        results = await findEmails(url);
+        results.title = 'Email Finder Results';
+        break;
+      case 'ssl-check':
+        results = await checkSSL(url);
+        results.title = 'SSL Certificate Check Results';
         break;
       default:
         throw new Error('Invalid tool selected');
     }
 
-    hideLoading();
-    const resultsContent = document.querySelector('#results-content pre');
+    // Display results
     if (resultsContent) {
       resultsContent.textContent = JSON.stringify(results, null, 2);
     }
-    showResults();
+    if (resultsDiv) {
+      resultsDiv.classList.remove('hidden');
+    }
   } catch (error) {
-    hideLoading();
-    hideResults();
-    showError(error.message);
+    if (errorMessage) {
+      errorMessage.textContent = error.message;
+    }
+    if (errorDiv) {
+      errorDiv.classList.remove('hidden');
+    }
+    if (resultsDiv) {
+      resultsDiv.classList.add('hidden');
+    }
+  } finally {
+    if (loadingDiv) {
+      loadingDiv.classList.add('hidden');
+    }
   }
 }
 
-// Add event listeners if in browser environment
-if (typeof window !== 'undefined') {
-  // Tool button click handlers
-  toolButtons.forEach((button) => {
-    if (!button.disabled) {
-      button.addEventListener('click', handleToolSelection);
-    }
-  });
-
-  // Form submission handler
-  const analysisForm = document.getElementById('analysis-form');
-  analysisForm?.addEventListener('submit', handleFormSubmit);
+function isValidUrl(string) {
+  try {
+    const url = new URL(string);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
 }
 
 // Helper function to check if a subdomain resolves
@@ -229,52 +309,62 @@ export async function scanSubdomains(domain, testSubdomains = null) {
   }
 }
 
-// CMS Detection
-export async function detectCMS(url, testMode = false) {
+// Helper function to fetch with proxy
+async function fetchWithProxy(url, proxyUrl) {
+  const fullUrl = `${proxyUrl}${encodeURIComponent(url)}`;
+  const response = await fetch(fullUrl);
+  
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  
+  return response;
+}
+
+// Helper function to extract headers
+function extractHeaders(response) {
+  if (response.headers instanceof Map) {
+    const headers = {};
+    for (const [key, value] of response.headers) {
+      headers[key.toLowerCase()] = value;
+    }
+    return headers;
+  }
+  return Object.fromEntries(response.headers);
+}
+
+// Helper function to fetch content
+async function fetchContent(url, testMode = false) {
   let response;
-  let html;
-  let headers;
-
-  try {
-    if (!testMode) {
-      // Try primary proxy first
+  
+  if (testMode) {
+    response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+  } else {
+    try {
+      response = await fetchWithProxy(url, CORS_PROXY);
+    } catch (error) {
+      logger.warn('Primary proxy failed, trying fallback', error);
       try {
-        const proxyUrl = `${CORS_PROXY}${encodeURIComponent(url)}`;
-        response = await fetch(proxyUrl);
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        html = await response.text();
-        headers = Object.fromEntries(response.headers);
-      } catch (primaryError) {
-        // If primary proxy fails, try fallback
-        logger.warn('Primary proxy failed, trying fallback', primaryError);
-        const fallbackUrl = `${FALLBACK_CORS_PROXY}${encodeURIComponent(url)}`;
-        response = await fetch(fallbackUrl);
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        html = await response.text();
-        headers = Object.fromEntries(response.headers);
-      }
-    } else {
-      // In test mode, use fetch directly
-      response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      html = await response.text();
-      // Convert Map to object for test environment
-      headers = {};
-      for (const [key, value] of response.headers) {
-        headers[key.toLowerCase()] = value;
+        response = await fetchWithProxy(url, FALLBACK_CORS_PROXY);
+      } catch (fallbackError) {
+        throw new Error('Network error');
       }
     }
+  }
+  
+  const html = await response.text();
+  const headers = extractHeaders(response);
+  
+  return { html, headers };
+}
 
+// CMS Detection
+export async function detectCMS(url, testMode = false) {
+  try {
+    const { html, headers } = await fetchContent(url, testMode);
     let cmsName = null;
     let confidence = 0;
     let version = null;
@@ -330,6 +420,10 @@ export async function detectCMS(url, testMode = false) {
       version: version,
     };
   } catch (error) {
+    // If it's a network error, propagate it as is
+    if (error.message.includes('Network error')) {
+      throw error;
+    }
     throw new Error(`Failed to detect CMS: ${error.message}`);
   }
 }
@@ -719,52 +813,7 @@ export async function analyzeSslTls(url, pollDelay = 5000, maxPolls = 60) {
   }
 }
 
-// UI Helper functions
-function showLoading() {
-  const loadingDiv = document.getElementById('loading');
-  if (loadingDiv) {
-    loadingDiv.classList.remove('hidden');
-  }
-}
-
-function hideLoading() {
-  const loadingDiv = document.getElementById('loading');
-  if (loadingDiv) {
-    loadingDiv.classList.add('hidden');
-  }
-}
-
-function showError(message) {
-  const errorDiv = document.getElementById('error');
-  const errorMessage = document.querySelector('#error-message');
-  if (errorDiv && errorMessage) {
-    errorMessage.textContent = message;
-    errorDiv.classList.remove('hidden');
-  }
-}
-
-function hideError() {
-  const errorDiv = document.getElementById('error');
-  if (errorDiv) {
-    errorDiv.classList.add('hidden');
-  }
-}
-
-function showResults() {
-  const resultsDiv = document.getElementById('results');
-  if (resultsDiv) {
-    resultsDiv.classList.remove('hidden');
-  }
-}
-
-function hideResults() {
-  const resultsDiv = document.getElementById('results');
-  if (resultsDiv) {
-    resultsDiv.classList.add('hidden');
-  }
-}
-
 // Initialize the page
-document.addEventListener('DOMContentLoaded', () => {
-  urlInput.value = 'https://example.com';
-});
+if (typeof window !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', initializeDOMElements);
+}

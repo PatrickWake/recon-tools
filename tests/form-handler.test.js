@@ -62,14 +62,17 @@ describe('Form Handler and Tool Selection', () => {
 
   test('form submission shows loading state', async () => {
     // Mock successful response
-    global.fetch.mockImplementationOnce(() => 
-      new Promise(resolve => setTimeout(() => {
-        resolve({
-          ok: true,
-          headers: new Map([['x-powered-by', 'WordPress']]),
-          text: () => Promise.resolve('<meta name="generator" content="WordPress 6.0">'),
-        });
-      }, 100))
+    global.fetch.mockImplementationOnce(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => {
+            resolve({
+              ok: true,
+              headers: new Map([['x-powered-by', 'WordPress']]),
+              text: () => Promise.resolve('<meta name="generator" content="WordPress 6.0">'),
+            });
+          }, 100)
+        )
     );
 
     // Set active tool
@@ -154,7 +157,9 @@ describe('Form Handler and Tool Selection', () => {
     expect(errorDiv.classList.contains('hidden')).toBe(false);
 
     const errorMessage = document.querySelector('#error-message').textContent;
-    expect(errorMessage).toBe('Invalid URL. Please enter a valid URL including http:// or https://');
+    expect(errorMessage).toBe(
+      'Invalid URL. Please enter a valid URL including http:// or https://'
+    );
   });
 
   test('form submission handles different tools', async () => {
@@ -193,4 +198,4 @@ describe('Form Handler and Tool Selection', () => {
     const headerResults = JSON.parse(resultsContent);
     expect(headerResults.title).toBe('HTTP Headers Analysis');
   });
-}); 
+});

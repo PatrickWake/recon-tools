@@ -116,9 +116,12 @@ jobs:
 
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v9
+        env:
+          LIGHTHOUSE_PORT: 3000
+          LIGHTHOUSE_HOST: 'localhost'
+          LIGHTHOUSE_URL: ${{ github.event.pull_request.head.repo.html_url || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
         with:
-          urls: |
-            https://patrickwake.github.io/recon-tools/
+          configPath: './lighthouserc.cjs'
           uploadArtifacts: true
           temporaryPublicStorage: true
 
