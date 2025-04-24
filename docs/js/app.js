@@ -559,16 +559,18 @@ export async function analyzeRobots(url) {
         let currentUserAgent = '*';
 
         for (const line of lines) {
-            const trimmedLine = line.trim().toLowerCase();
+            const trimmedLine = line.trim();
+            const lowerLine = trimmedLine.toLowerCase();
             if (!trimmedLine || trimmedLine.startsWith('#')) continue;
 
-            if (trimmedLine.startsWith('user-agent:')) {
-                currentUserAgent = trimmedLine.split(':')[1].trim();
-            } else if (trimmedLine.startsWith('sitemap:')) {
-                const sitemap = line.split(':')[1].trim();
+            if (lowerLine.startsWith('user-agent:')) {
+                currentUserAgent = lowerLine.split(':')[1].trim();
+            } else if (lowerLine.startsWith('sitemap:')) {
+                const sitemap = trimmedLine.split(':').slice(1).join(':').trim();
                 results.sitemaps.push(sitemap);
-            } else if (trimmedLine.startsWith('allow:') || trimmedLine.startsWith('disallow:')) {
-                const [type, path] = line.split(':').map(part => part.trim());
+            } else if (lowerLine.startsWith('allow:') || lowerLine.startsWith('disallow:')) {
+                const [type, ...pathParts] = trimmedLine.split(':');
+                const path = pathParts.join(':').trim();
                 if (path) {
                     results.rules.push({
                         userAgent: currentUserAgent,
