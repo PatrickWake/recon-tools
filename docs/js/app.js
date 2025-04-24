@@ -1,19 +1,12 @@
 // State management
 let currentTool = 'cms-detect';
-let lastScannedTool = null;
 
 // Import technology patterns
 import { TECH_PATTERNS } from './tech-patterns.js';
 import { logger } from './logger.js';
 
 // DOM Elements
-const form = document.getElementById('analysis-form');
 const urlInput = document.getElementById('target-url');
-const resultsDiv = document.getElementById('results');
-const resultsContent = document.querySelector('#results-content pre');
-const errorDiv = document.getElementById('error');
-const errorMessage = document.getElementById('error-message');
-const loadingDiv = document.getElementById('loading');
 const toolButtons = document.querySelectorAll('.tool-btn');
 
 // CORS Proxy configuration
@@ -42,7 +35,6 @@ export function handleToolSelection(event) {
 export async function handleFormSubmit(event) {
   event.preventDefault();
   
-  const form = event.target;
   const targetUrl = document.getElementById('target-url')?.value;
   
   // Show loading state immediately
@@ -136,7 +128,8 @@ if (typeof window !== 'undefined') {
   });
 
   // Form submission handler
-  form?.addEventListener('submit', handleFormSubmit);
+  const analysisForm = document.getElementById('analysis-form');
+  analysisForm?.addEventListener('submit', handleFormSubmit);
 }
 
 // Helper function to check if a subdomain resolves
@@ -768,15 +761,6 @@ function hideResults() {
   const resultsDiv = document.getElementById('results');
   if (resultsDiv) {
     resultsDiv.classList.add('hidden');
-  }
-}
-
-function isValidUrl(string) {
-  try {
-    new URL(string);
-    return true;
-  } catch (_) {
-    return false;
   }
 }
 

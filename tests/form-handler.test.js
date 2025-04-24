@@ -4,7 +4,6 @@ import { handleFormSubmit, handleToolSelection } from '../docs/js/app.js';
 describe('Form Handler and Tool Selection', () => {
   let form;
   let urlInput;
-  let toolButtons;
   let resultsDiv;
   let loadingDiv;
   let errorDiv;
@@ -36,7 +35,6 @@ describe('Form Handler and Tool Selection', () => {
 
     form = document.getElementById('analysis-form');
     urlInput = document.getElementById('target-url');
-    toolButtons = document.querySelectorAll('.tool-btn');
     resultsDiv = document.getElementById('results');
     loadingDiv = document.getElementById('loading');
     errorDiv = document.getElementById('error');
