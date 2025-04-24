@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import 'whatwg-fetch';
 
 // Mock DOM elements
