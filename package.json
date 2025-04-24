@@ -38,7 +38,6 @@
       "docs/js/**/*.js"
     ],
     "transform": {},
-    "extensionsToTreatAsEsm": [".js"],
     "moduleNameMapper": {
       "^(\\.{1,2}/.*)\\.js$": "$1"
     }
