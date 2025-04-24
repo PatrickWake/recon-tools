@@ -41,7 +41,7 @@ describe('Recon Tools', () => {
             const results = await detectCMS('https://example.com');
             expect(results.detected).toBe(true);
             expect(results.cms).toBe('wordpress');
-            expect(results.confidence).toBeGreaterThan(0);
+            expect(results.confidence).toBeGreaterThan(40);
         });
     });
 
@@ -58,6 +58,7 @@ describe('Recon Tools', () => {
             const results = await dnsLookup('https://example.com');
             expect(results.records[0].data).toBe('93.184.216.34');
             expect(results.records[0].TTL).toBe(3600);
+            expect(results.status).toBe(0);
         });
     });
 
