@@ -121,6 +121,10 @@ form.addEventListener('submit', async (e) => {
                 const emailResults = await findEmails(targetUrl);
                 showResults(emailResults);
                 break;
+            case 'ssl-check':
+                const sslResults = await checkSSL(targetUrl);
+                showResults(sslResults);
+                break;
             default:
                 throw new Error('Tool not implemented');
         }
@@ -314,6 +318,50 @@ export async function findEmails(url) {
     }
 }
 
+export async function checkSSL(url) {
+    try {
+        const hostname = new URL(url).hostname;
+        const apiUrl = `https://api.ssllabs.com/api/v3/analyze?host=${hostname}&all=done`;
+        
+        // Start the scan
+        let response = await fetch(apiUrl);
+        let data = await response.json();
+        
+        // Wait for the scan to complete
+        while (data.status !== 'READY' && data.status !== 'ERROR') {
+            await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+            response = await fetch(apiUrl);
+            data = await response.json();
+        }
+
+        if (data.status === 'ERROR') {
+            throw new Error(data.statusMessage || 'SSL scan failed');
+        }
+
+        return {
+            url: url,
+            timestamp: new Date().toISOString(),
+            grade: data.endpoints[0].grade,
+            certInfo: {
+                subject: data.endpoints[0].details.cert.subject,
+                issuer: data.endpoints[0].details.cert.issuer,
+                validFrom: new Date(data.endpoints[0].details.cert.notBefore * 1000).toISOString(),
+                validTo: new Date(data.endpoints[0].details.cert.notAfter * 1000).toISOString(),
+            },
+            protocols: data.endpoints[0].details.protocols,
+            vulnerabilities: {
+                heartbleed: data.endpoints[0].details.heartbleed,
+                poodle: data.endpoints[0].details.poodle,
+                freak: data.endpoints[0].details.freak,
+                logjam: data.endpoints[0].details.logjam,
+                drownVulnerable: data.endpoints[0].details.drownVulnerable,
+            }
+        };
+    } catch (error) {
+        throw new Error(`Failed to check SSL: ${error.message}`);
+    }
+}
+
 // UI Helper functions
 export function showLoading() {
     loadingDiv.classList.remove('hidden');
@@ -350,6 +398,9 @@ export function showResults(data) {
             break;
         case 'email-finder':
             formattedResults = formatEmailResults(data);
+            break;
+        case 'ssl-check':
+            formattedResults = formatSSLResults(data);
             break;
         default:
             formattedResults = JSON.stringify(data, null, 2);
@@ -440,6 +491,33 @@ export function formatEmailResults(data) {
 
     data.emails.forEach(email => lines.push(`  • ${email}`));
     
+    return lines.join('\n');
+}
+
+export function formatSSLResults(data) {
+    const lines = [
+        `SSL/TLS Analysis for ${data.url}`,
+        `Timestamp: ${data.timestamp}\n`,
+        `SSL Grade: ${data.grade}`,
+        '\nCertificate Information:',
+        `  Subject: ${data.certInfo.subject}`,
+        `  Issuer: ${data.certInfo.issuer}`,
+        `  Valid From: ${data.certInfo.validFrom}`,
+        `  Valid To: ${data.certInfo.validTo}`,
+        '\nSupported Protocols:',
+    ];
+
+    data.protocols.forEach(protocol => {
+        lines.push(`  • ${protocol.name} ${protocol.version}`);
+    });
+
+    lines.push('\nVulnerability Assessment:');
+    for (const [vuln, status] of Object.entries(data.vulnerabilities)) {
+        const icon = status ? '❌' : '✓';
+        const name = vuln.charAt(0).toUpperCase() + vuln.slice(1);
+        lines.push(`  ${icon} ${name}`);
+    }
+
     return lines.join('\n');
 }
 
