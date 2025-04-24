@@ -6,6 +6,8 @@ describe('Technology Detection Tool', () => {
         // Clear all mocks before each test
         jest.clearAllMocks();
         global.fetch = jest.fn();
+        // Silence console warnings in tests
+        jest.spyOn(console, 'warn').mockImplementation(() => {});
     });
 
     test('correctly detects technologies from HTML and headers', async () => {
@@ -69,8 +71,10 @@ describe('Technology Detection Tool', () => {
     });
 
     test('handles network errors gracefully', async () => {
-        // Mock a network error
-        global.fetch.mockRejectedValueOnce(new Error('Network error'));
+        // Mock both proxies failing
+        global.fetch
+            .mockRejectedValueOnce(new Error('Network error'))
+            .mockRejectedValueOnce(new Error('Network error'));
 
         await expect(detectTech('https://example.com'))
             .rejects
@@ -78,12 +82,18 @@ describe('Technology Detection Tool', () => {
     });
 
     test('handles invalid response gracefully', async () => {
-        // Mock an invalid response
-        global.fetch.mockResolvedValueOnce({
-            ok: false,
-            status: 500,
-            statusText: 'Internal Server Error'
-        });
+        // Mock both proxies returning 500
+        global.fetch
+            .mockResolvedValueOnce({
+                ok: false,
+                status: 500,
+                statusText: 'Internal Server Error'
+            })
+            .mockResolvedValueOnce({
+                ok: false,
+                status: 500,
+                statusText: 'Internal Server Error'
+            });
 
         await expect(detectTech('https://example.com'))
             .rejects
@@ -106,15 +116,14 @@ describe('Technology Detection Tool', () => {
 
     test('tries fallback proxy on primary proxy failure', async () => {
         // Mock primary proxy failure
-        global.fetch.mockRejectedValueOnce(new Error('Primary proxy failed'));
-        
-        // Mock successful fallback response
-        const mockHtml = '<html><script src="react.min.js"></script></html>';
-        global.fetch.mockResolvedValueOnce({
-            ok: true,
-            text: () => Promise.resolve(mockHtml),
-            headers: new Map()
-        });
+        global.fetch
+            .mockRejectedValueOnce(new Error('Primary proxy failed'))
+            // Mock successful fallback response
+            .mockResolvedValueOnce({
+                ok: true,
+                text: () => Promise.resolve('<html><script src="react.min.js"></script></html>'),
+                headers: new Map()
+            });
 
         const result = await detectTech('https://example.com');
 

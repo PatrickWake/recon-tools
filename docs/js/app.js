@@ -74,11 +74,11 @@ form.addEventListener('submit', async (e) => {
 
 // Technology Stack Detection
 export async function detectTech(url) {
-    try {
-        let response;
-        let html;
-        let headers;
+    let response;
+    let html;
+    let headers;
 
+    try {
         // Try primary proxy first
         try {
             const proxyUrl = `${CORS_PROXY}${encodeURIComponent(url)}`;
