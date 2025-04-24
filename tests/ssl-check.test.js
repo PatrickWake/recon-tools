@@ -111,9 +111,9 @@ describe('SSL/TLS Analyzer Tool', () => {
                 json: () => Promise.resolve(completedResponse)
             });
 
-        const result = await analyzeSslTls('https://example.com');
+        const result = await analyzeSslTls('https://example.com', 100);
         expect(result.grade).toBe('A');
-    });
+    }, 15000);
 
     test('handles errors gracefully', async () => {
         global.fetch.mockResolvedValueOnce({

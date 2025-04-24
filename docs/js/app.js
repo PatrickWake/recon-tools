@@ -649,14 +649,14 @@ export async function findEmails(url) {
 }
 
 // SSL/TLS Analysis
-export async function analyzeSslTls(url) {
+export async function analyzeSslTls(url, pollDelay = 5000) {
     try {
         // SSL Labs API endpoint
         const API_URL = 'https://api.ssllabs.com/api/v3';
         
         // Start new scan
         const startScan = await fetch(`${API_URL}/analyze?host=${encodeURIComponent(new URL(url).hostname)}&startNew=on&all=done`);
-        const scanData = await startScan.json();
+        let scanData = await startScan.json();
         
         if (scanData.status !== 'READY' && scanData.status !== 'ERROR') {
             // Poll until complete
@@ -664,13 +664,12 @@ export async function analyzeSslTls(url) {
             const maxPolls = 60; // 5 minutes maximum
             
             while (pollCount < maxPolls) {
-                await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+                await new Promise(resolve => setTimeout(resolve, pollDelay)); // Configurable delay
                 
                 const pollResponse = await fetch(`${API_URL}/analyze?host=${encodeURIComponent(new URL(url).hostname)}`);
-                const pollData = await pollResponse.json();
+                scanData = await pollResponse.json();
                 
-                if (pollData.status === 'READY' || pollData.status === 'ERROR') {
-                    scanData = pollData;
+                if (scanData.status === 'READY' || scanData.status === 'ERROR') {
                     break;
                 }
                 
