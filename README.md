@@ -135,3 +135,13 @@ if (currentTool === 'tech-detect') {
 - All tests passing
 - Manual testing completed
 - No regressions found 
+
+## Code Quality
+
+This project uses several tools to maintain code quality:
+- ESLint for JavaScript linting
+- Prettier for code formatting
+- SonarCloud for continuous code quality analysis
+- Jest for unit testing with coverage requirements
+
+You can view the detailed code quality metrics on our [SonarCloud Dashboard](https://sonarcloud.io/project/overview?id=patrickwake_recon-tools). 
