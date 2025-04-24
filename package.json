@@ -1,0 +1,36 @@
+{
+  "name": "recon-tools",
+  "version": "1.0.0",
+  "description": "Cloud-native reconnaissance tools for web security analysis",
+  "main": "docs/js/app.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": [
+    "security",
+    "recon",
+    "web-security",
+    "cms-detection",
+    "dns-lookup"
+  ],
+  "author": "Patrick Wake",
+  "license": "MIT",
+  "devDependencies": {
+    "@babel/core": "^7.24.0",
+    "@babel/preset-env": "^7.24.0",
+    "babel-jest": "^29.7.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "node-fetch": "^3.3.2"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "moduleDirectories": ["node_modules", "docs/js"],
+    "setupFiles": ["./tests/setup.js"],
+    "collectCoverageFrom": [
+      "docs/js/**/*.js"
+    ]
+  }
+} 

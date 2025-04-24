@@ -7,6 +7,10 @@ dist/
 build/
 .wrangler/
 
+# Test coverage
+coverage/
+.nyc_output/
+
 # IDE and OS files
 .DS_Store
 .idea/
