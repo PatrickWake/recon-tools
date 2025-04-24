@@ -1,36 +1,23 @@
 {
   "name": "recon-tools",
   "version": "1.0.0",
-  "description": "Cloud-native reconnaissance tools for web security analysis",
-  "main": "docs/js/app.js",
+  "description": "Cloud-Native Security Analysis Tools",
   "scripts": {
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PatrickWake/recon-tools.git"
   },
   "keywords": [
     "security",
-    "recon",
-    "web-security",
-    "cms-detection",
-    "dns-lookup"
+    "analysis",
+    "tools"
   ],
   "author": "Patrick Wake",
   "license": "MIT",
-  "devDependencies": {
-    "@babel/core": "^7.24.0",
-    "@babel/preset-env": "^7.24.0",
-    "babel-jest": "^29.7.0",
-    "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0",
-    "node-fetch": "^3.3.2"
+  "bugs": {
+    "url": "https://github.com/PatrickWake/recon-tools/issues"
   },
-  "jest": {
-    "testEnvironment": "jsdom",
-    "moduleDirectories": ["node_modules", "docs/js"],
-    "setupFiles": ["./tests/setup.js"],
-    "collectCoverageFrom": [
-      "docs/js/**/*.js"
-    ]
-  }
+  "homepage": "https://github.com/PatrickWake/recon-tools#readme"
 } 
