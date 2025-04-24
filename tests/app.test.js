@@ -1,4 +1,4 @@
-import { jest, describe, it, expect, beforeEach } from '@jest/globals';
+import { jest } from '@jest/globals';
 import {
     detectCMS,
     checkHeaders,
@@ -8,6 +8,11 @@ import {
     showResults,
     showError
 } from '../docs/js/app.js';
+
+const describe = global.describe;
+const it = global.it;
+const expect = global.expect;
+const beforeEach = global.beforeEach;
 
 describe('Recon Tools', () => {
     beforeEach(() => {

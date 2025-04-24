@@ -1,5 +1,10 @@
-import { jest, describe, it, expect, test } from '@jest/globals';
+import { jest } from '@jest/globals';
 import { dnsLookup } from '../docs/js/app.js';
+
+const describe = global.describe;
+const it = global.it;
+const expect = global.expect;
+const test = global.test;
 
 describe('DNS Lookup Tool', () => {
     it('fetches DNS records successfully', async () => {

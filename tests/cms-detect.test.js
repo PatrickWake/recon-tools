@@ -1,5 +1,11 @@
-import { jest, describe, it, expect, test } from '@jest/globals';
+import { jest } from '@jest/globals';
 import { detectCMS } from '../docs/js/app.js';
+
+const describe = global.describe;
+const it = global.it;
+const expect = global.expect;
+const test = global.test;
+const beforeEach = global.beforeEach;
 
 describe('CMS Detection Tool', () => {
     beforeEach(() => {
