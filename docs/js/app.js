@@ -33,9 +33,8 @@ toolButtons.forEach(button => {
             // Update current tool
             currentTool = button.dataset.tool;
             
-            // Reset form and results
+            // Only reset form, keep results visible
             form.reset();
-            hideResults();
             hideError();
         });
     }
@@ -56,7 +55,7 @@ form.addEventListener('submit', async (e) => {
         const url = new URL(targetUrl);
         
         hideError();
-        hideResults();
+        hideResults(); // Only hide results when starting a new scan
         showLoading();
 
         let results;
@@ -81,6 +80,9 @@ form.addEventListener('submit', async (e) => {
                 break;
             case 'email-finder':
                 results = await findEmails(targetUrl);
+                break;
+            case 'ssl-check':
+                results = await analyzeSslTls(targetUrl);
                 break;
             default:
                 throw new Error('Tool not implemented');
@@ -646,6 +648,77 @@ export async function findEmails(url) {
     }
 }
 
+// SSL/TLS Analysis
+export async function analyzeSslTls(url, pollDelay = 5000, maxPolls = 60) {
+    try {
+        // Extract hostname from URL
+        const hostname = new URL(url).hostname;
+        if (!hostname) {
+            throw new Error('Invalid hostname');
+        }
+
+        // SSL Labs API endpoint
+        const API_URL = 'https://api.ssllabs.com/api/v3';
+        
+        // Start new scan
+        const startScan = await fetch(`${API_URL}/analyze?host=${encodeURIComponent(hostname)}&startNew=on&all=done`);
+        let scanData = await startScan.json();
+        
+        if (scanData.status !== 'READY' && scanData.status !== 'ERROR') {
+            // Poll until complete
+            let pollCount = 0;
+            
+            while (pollCount < maxPolls) {
+                await new Promise(resolve => setTimeout(resolve, pollDelay));
+                
+                const pollResponse = await fetch(`${API_URL}/analyze?host=${encodeURIComponent(hostname)}`);
+                scanData = await pollResponse.json();
+                
+                if (scanData.status === 'READY' || scanData.status === 'ERROR') {
+                    break;
+                }
+                
+                pollCount++;
+            }
+            
+            if (pollCount >= maxPolls) {
+                throw new Error('SSL scan timed out');
+            }
+        }
+        
+        if (scanData.status === 'ERROR') {
+            throw new Error(`SSL Labs API Error: ${scanData.statusMessage || 'Unknown error'}`);
+        }
+        
+        // Ensure we have the required data
+        if (!scanData.endpoints || !scanData.endpoints[0]) {
+            throw new Error('Invalid response from SSL Labs API');
+        }
+
+        const endpoint = scanData.endpoints[0];
+        
+        return {
+            url: url,
+            timestamp: new Date().toISOString(),
+            grade: endpoint.grade,
+            protocols: endpoint.details.protocols.map(p => ({
+                name: p.name,
+                version: p.version
+            })),
+            vulnerabilities: {
+                heartbleed: endpoint.details.heartbleed || false,
+                poodle: endpoint.details.poodle || false,
+                vulnBeast: endpoint.details.vulnBeast || false
+            }
+        };
+    } catch (error) {
+        if (error.message.includes('SSL Labs API Error:')) {
+            throw error;
+        }
+        throw new Error(`Failed to analyze SSL/TLS: ${error.message}`);
+    }
+}
+
 // UI Helper functions
 function showLoading() {
     loadingDiv.classList.remove('hidden');
@@ -793,6 +866,22 @@ function showResults(data) {
             });
         } else {
             lines.push('No email addresses found');
+        }
+    } else if (currentTool === 'ssl-check') {
+        lines = [
+            `SSL/TLS Analysis for ${data.url}`,
+            `Timestamp: ${data.timestamp}\n`,
+            `Overall Grade: ${data.grade}\n`,
+            'Supported Protocols:'
+        ];
+        
+        data.protocols.forEach(protocol => {
+            lines.push(`  • ${protocol.name} ${protocol.version}`);
+        });
+        
+        lines.push('\nVulnerability Assessment:');
+        for (const [vuln, status] of Object.entries(data.vulnerabilities)) {
+            lines.push(`  • ${vuln}: ${status ? '❌ Vulnerable' : '✅ Not Vulnerable'}`);
         }
     } else {
         lines = ['Unsupported tool'];
