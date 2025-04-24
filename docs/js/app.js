@@ -1,6 +1,9 @@
 // State management
 let currentTool = 'cms-detect';
 
+// Import technology patterns
+import { TECH_PATTERNS } from './tech-patterns.js';
+
 // DOM Elements
 const form = document.getElementById('analysis-form');
 const urlInput = document.getElementById('target-url');
@@ -124,6 +127,10 @@ form.addEventListener('submit', async (e) => {
             case 'ssl-check':
                 const sslResults = await checkSSL(targetUrl);
                 showResults(sslResults);
+                break;
+            case 'tech-detect':
+                const techResults = await detectTech(targetUrl);
+                showResults(techResults);
                 break;
             default:
                 throw new Error('Tool not implemented');
@@ -362,6 +369,93 @@ export async function checkSSL(url) {
     }
 }
 
+export async function detectTech(url) {
+    try {
+        // Get HTML content
+        const proxyUrl = `${CORS_PROXY}${encodeURIComponent(url)}`;
+        const response = await fetch(proxyUrl);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const html = await response.text();
+        const headers = Object.fromEntries(response.headers);
+
+        const results = {
+            url: url,
+            timestamp: new Date().toISOString(),
+            technologies: {}
+        };
+
+        // Check each category
+        for (const [category, techs] of Object.entries(TECH_PATTERNS)) {
+            results.technologies[category] = [];
+
+            // Check each technology in the category
+            for (const [techName, patterns] of Object.entries(techs)) {
+                let found = false;
+                const matches = [];
+
+                // Check headers
+                if (patterns.headers) {
+                    patterns.headers.forEach(pattern => {
+                        const headerKey = Object.keys(headers).find(key => 
+                            key.toLowerCase().includes(pattern.toLowerCase()) ||
+                            headers[key].toLowerCase().includes(pattern.toLowerCase())
+                        );
+                        if (headerKey) {
+                            found = true;
+                            matches.push(`Header: ${headerKey}`);
+                        }
+                    });
+                }
+
+                // Check HTML content
+                if (patterns.html) {
+                    patterns.html.forEach(pattern => {
+                        if (html.includes(pattern)) {
+                            found = true;
+                            matches.push(`HTML: ${pattern}`);
+                        }
+                    });
+                }
+
+                // Check scripts
+                if (patterns.scripts) {
+                    patterns.scripts.forEach(pattern => {
+                        if (html.includes(pattern)) {
+                            found = true;
+                            matches.push(`Script: ${pattern}`);
+                        }
+                    });
+                }
+
+                // Check meta tags
+                if (patterns.meta) {
+                    patterns.meta.forEach(pattern => {
+                        if (html.includes(pattern)) {
+                            found = true;
+                            matches.push(`Meta: ${pattern}`);
+                        }
+                    });
+                }
+
+                if (found) {
+                    results.technologies[category].push({
+                        name: techName,
+                        matches: matches
+                    });
+                }
+            }
+        }
+
+        return results;
+    } catch (error) {
+        throw new Error(`Failed to detect technologies: ${error.message}`);
+    }
+}
+
 // UI Helper functions
 export function showLoading() {
     loadingDiv.classList.remove('hidden');
@@ -401,6 +495,9 @@ export function showResults(data) {
             break;
         case 'ssl-check':
             formattedResults = formatSSLResults(data);
+            break;
+        case 'tech-detect':
+            formattedResults = formatTechResults(data);
             break;
         default:
             formattedResults = JSON.stringify(data, null, 2);
@@ -516,6 +613,32 @@ export function formatSSLResults(data) {
         const icon = status ? '❌' : '✓';
         const name = vuln.charAt(0).toUpperCase() + vuln.slice(1);
         lines.push(`  ${icon} ${name}`);
+    }
+
+    return lines.join('\n');
+}
+
+export function formatTechResults(data) {
+    const lines = [
+        `Technology Stack Analysis for ${data.url}`,
+        `Timestamp: ${data.timestamp}\n`
+    ];
+
+    for (const [category, techs] of Object.entries(data.technologies)) {
+        if (techs.length > 0) {
+            lines.push(`${category.charAt(0).toUpperCase() + category.slice(1)}:`);
+            techs.forEach(tech => {
+                lines.push(`  • ${tech.name}`);
+                tech.matches.forEach(match => {
+                    lines.push(`    - ${match}`);
+                });
+            });
+            lines.push('');
+        }
+    }
+
+    if (lines.length === 2) {
+        lines.push('No technologies detected');
     }
 
     return lines.join('\n');
