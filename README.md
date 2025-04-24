@@ -1,78 +1,100 @@
 # Recon Tools
 
-A collection of lightweight, cloud-native reconnaissance tools built with JavaScript and deployed on Cloudflare Workers. These tools are designed for passive information gathering and website analysis.
+A collection of lightweight reconnaissance tools for website analysis and security assessment. All tools run entirely in your browser - no server-side processing required.
 
 ## Features
 
-- **HTTP Header Analyzer**: Inspect HTTP response headers
-- **CMS Detector**: Identify content management systems
-- *(Coming Soon)*:
-  - DNS Record Lookup
-  - Subdomain Brute-forcer
-  - Robots.txt & Sitemap Fetcher
-  - Email Scraper
-  - Broken Link Checker
+- **CMS Detector**: Identify content management systems and their versions
+- **Technology Stack Detector**: Discover web technologies, frameworks, and libraries
+- **HTTP Header Analyzer**: Inspect and categorize HTTP response headers
+- **DNS Record Lookup**: Query and analyze DNS records
+- **Subdomain Scanner**: Discover active subdomains
+- **Robots.txt Analyzer**: Parse and analyze robots.txt files
+- **Email Finder**: Extract email addresses from web pages
+- **SSL/TLS Checker**: Analyze SSL/TLS configuration and vulnerabilities
 
 ## Project Structure
 
 ```
 recon-tools/
-├── src/
-│   ├── worker.js           # Main worker entry point
-│   ├── tools/              # Individual tool implementations
-│   │   ├── cmsDetect.js    # CMS detection tool
-│   │   └── headerCheck.js  # Header analysis tool
-│   └── utils/              # Shared utilities
-│       └── http.js         # HTTP helper functions
-├── wrangler.toml           # Cloudflare Workers configuration
-└── README.md              # Project documentation
+├── docs/                  # Static web application
+│   ├── index.html        # Main application page
+│   ├── css/              # Stylesheets
+│   └── js/               # JavaScript modules
+│       ├── app.js        # Core application logic
+│       └── tech-patterns.js  # Technology detection patterns
+├── tests/                # Test suite
+│   ├── cms-detect.test.js
+│   ├── tech-detect.test.js
+│   ├── dns-lookup.test.js
+│   ├── robots-check.test.js
+│   ├── email-finder.test.js
+│   └── ssl-check.test.js
+└── README.md            # Project documentation
 ```
 
 ## Development
 
-1. Install dependencies:
+1. Clone the repository:
    ```bash
-   npm install -g wrangler
+   git clone https://github.com/PatrickWake/recon-tools.git
+   cd recon-tools
    ```
 
-2. Authenticate with Cloudflare:
+2. Install dependencies:
    ```bash
-   wrangler login
+   npm install
    ```
 
-3. Run locally:
+3. Run tests:
    ```bash
-   wrangler dev
+   npm test
    ```
 
-4. Deploy:
-   ```bash
-   wrangler publish
-   ```
+4. Open `docs/index.html` in your browser or serve with a local server.
 
-## API Usage
+## Tool Descriptions
 
 ### CMS Detection
+- Detects popular Content Management Systems
+- Provides confidence scores and version information
+- Supports WordPress detection with multiple indicators
 
-```http
-GET /cms-detect?url=https://example.com
-```
+### Technology Stack Detection
+- Identifies web frameworks, libraries, and tools
+- Categorizes technologies by type
+- Shows evidence of detected technologies
 
-Response:
-```json
-{
-  "url": "https://example.com",
-  "timestamp": "2024-03-01T12:00:00Z",
-  "detected": true,
-  "cms": "wordpress",
-  "confidence": 85,
-  "matches": [
-    "Meta: <meta name=\"generator\" content=\"WordPress",
-    "Path: /wp-content/",
-    "Script: wp-emoji-release.min.js"
-  ]
-}
-```
+### HTTP Header Analysis
+- Categorizes security, caching, and CORS headers
+- Identifies server technologies
+- Highlights missing security headers
+
+### DNS Record Lookup
+- Queries A, AAAA, MX, NS, TXT, and SOA records
+- Shows TTL values and record data
+- Handles multiple records per type
+
+### Subdomain Scanner
+- Checks common subdomain patterns
+- Verifies active subdomains
+- Shows DNS records for discovered subdomains
+
+### Robots.txt Analyzer
+- Parses robots.txt directives
+- Lists sitemaps
+- Shows crawling rules by user agent
+
+### Email Finder
+- Extracts email addresses from web pages
+- Finds addresses in mailto: links
+- Normalizes and deduplicates results
+
+### SSL/TLS Checker
+- Grades SSL/TLS configuration
+- Lists supported protocols
+- Checks for common vulnerabilities (Heartbleed, POODLE, etc.)
+- Shows certificate details and expiration
 
 ## License
 
@@ -87,3 +109,29 @@ if (currentTool === 'tech-detect') {
 } else {
     lines = ['Unsupported tool'];
 } 
+
+# Feature Improvements
+
+## New Features
+- Added SSL/TLS checker tool with comprehensive vulnerability scanning
+- Improved UI: Results stay visible when switching between tools
+
+## Bug Fixes
+- Fixed robots.txt parsing to handle URLs with colons
+- Fixed CMS detection edge cases
+
+## Test Coverage
+- Added SSL/TLS checker tests
+- Added email finder tests
+- Added robots.txt analyzer tests
+- Added DNS lookup tests
+
+## UI/UX Improvements
+- Results persist between tool switches for better comparison
+- Cleaner state management
+- Better error handling
+
+## Testing
+- All tests passing
+- Manual testing completed
+- No regressions found 
