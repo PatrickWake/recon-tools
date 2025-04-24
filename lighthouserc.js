@@ -1,20 +1,14 @@
 module.exports = {
   ci: {
     collect: {
-      startServerCommand: 'npx serve docs',
-      url: ['http://localhost:3000'],
-      numberOfRuns: 3,
-    },
-    assert: {
-      assertions: {
-        'categories:performance': ['warn', { minScore: 0.9 }],
-        'categories:accessibility': ['error', { minScore: 0.9 }],
-        'categories:best-practices': ['warn', { minScore: 0.9 }],
-        'categories:seo': ['warn', { minScore: 0.9 }],
-      },
+      numberOfRuns: 1,
+      url: ['https://patrickwake.github.io/recon-tools/']
     },
     upload: {
-      target: 'temporary-public-storage',
+      target: 'temporary-public-storage'
     },
-  },
+    assert: {
+      preset: 'lighthouse:recommended'
+    }
+  }
 };
