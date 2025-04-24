@@ -1,5 +1,5 @@
 // Configuration
-const WORKER_URL = 'https://recon-tools.your-username.workers.dev';
+const WORKER_URL = 'https://recon-tools.pwake.workers.dev';
 
 // State management
 let currentTool = 'cms-detect';
