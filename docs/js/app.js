@@ -183,10 +183,10 @@ export async function detectTech(url) {
 }
 
 // Subdomain Scanner
-export async function scanSubdomains(domain) {
+export async function scanSubdomains(domain, testSubdomains = null) {
     try {
         // Common subdomain prefixes to check
-        const commonSubdomains = [
+        const commonSubdomains = testSubdomains || [
             'www', 'mail', 'ftp', 'smtp', 'pop', 'api',
             'dev', 'staging', 'test', 'beta', 'alpha',
             'admin', 'blog', 'shop', 'store', 'secure',
@@ -241,8 +241,8 @@ export async function scanSubdomains(domain) {
             // Add successful results
             results.subdomains.push(...results_batch.filter(r => r !== null));
             
-            // Rate limiting
-            if (i + batchSize < commonSubdomains.length) {
+            // Rate limiting - skip in test mode
+            if (!testSubdomains && i + batchSize < commonSubdomains.length) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
         }

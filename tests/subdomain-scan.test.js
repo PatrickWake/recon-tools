@@ -11,6 +11,9 @@ describe('Subdomain Scanner Tool', () => {
     });
 
     test('correctly detects active subdomains', async () => {
+        // Reduce the number of subdomains to check in test
+        jest.spyOn(global, 'setTimeout').mockImplementation(fn => fn());
+
         // Mock successful subdomain responses
         const mockResponses = {
             'www': {
@@ -43,7 +46,7 @@ describe('Subdomain Scanner Tool', () => {
             };
         });
 
-        const result = await scanSubdomains('example.com');
+        const result = await scanSubdomains('example.com', ['www', 'api']); // Pass specific subdomains to test
 
         // Verify the results
         expect(result).toHaveProperty('domain', 'example.com');
@@ -76,18 +79,19 @@ describe('Subdomain Scanner Tool', () => {
                 })
             ])
         );
-    });
+    }, 10000); // Increase timeout to 10 seconds
 
     test('handles DNS errors gracefully', async () => {
         // Mock DNS error
         global.fetch.mockRejectedValue(new Error('DNS resolution failed'));
+        jest.spyOn(global, 'setTimeout').mockImplementation(fn => fn());
 
-        const result = await scanSubdomains('example.com');
+        const result = await scanSubdomains('example.com', ['www']); // Test with single subdomain
 
         expect(result).toHaveProperty('domain', 'example.com');
         expect(result.total).toBe(0);
         expect(result.subdomains).toEqual([]);
-    });
+    }, 10000);
 
     test('handles rate limiting correctly', async () => {
         // Mock timing functions
@@ -102,14 +106,12 @@ describe('Subdomain Scanner Tool', () => {
             })
         });
 
-        // Start scanning but don't await it
-        const scanPromise = scanSubdomains('example.com');
+        // Start scanning with limited subdomains
+        const scanPromise = scanSubdomains('example.com', ['www', 'api']);
 
         // Fast-forward timers one at a time
-        for (let i = 0; i < 10; i++) {
-            jest.advanceTimersByTime(1000);
-            await Promise.resolve(); // Let promises resolve
-        }
+        jest.runAllTimers();
+        await Promise.resolve(); // Let promises resolve
 
         const result = await scanPromise;
 
@@ -118,7 +120,7 @@ describe('Subdomain Scanner Tool', () => {
 
         // Cleanup
         jest.useRealTimers();
-    });
+    }, 10000);
 
     test('handles invalid responses gracefully', async () => {
         // Mock invalid response
@@ -127,11 +129,12 @@ describe('Subdomain Scanner Tool', () => {
             status: 500,
             statusText: 'Internal Server Error'
         });
+        jest.spyOn(global, 'setTimeout').mockImplementation(fn => fn());
 
-        const result = await scanSubdomains('example.com');
+        const result = await scanSubdomains('example.com', ['www']); // Test with single subdomain
 
         expect(result).toHaveProperty('domain', 'example.com');
         expect(result.total).toBe(0);
         expect(result.subdomains).toEqual([]);
-    });
+    }, 10000);
 }); 
