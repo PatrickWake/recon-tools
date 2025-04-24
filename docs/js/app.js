@@ -99,6 +99,18 @@ form.addEventListener('submit', async (e) => {
                 const headerResults = await checkHeaders(targetUrl);
                 showResults(headerResults);
                 break;
+            case 'dns-lookup':
+                const dnsResults = await dnsLookup(targetUrl);
+                showResults(dnsResults);
+                break;
+            case 'robots-check':
+                const robotsResults = await checkRobots(targetUrl);
+                showResults(robotsResults);
+                break;
+            case 'email-finder':
+                const emailResults = await findEmails(targetUrl);
+                showResults(emailResults);
+                break;
             default:
                 throw new Error('Tool not implemented');
         }
@@ -186,6 +198,149 @@ async function checkHeaders(url) {
     }
 }
 
+async function dnsLookup(url) {
+    try {
+        // Use Google's DNS-over-HTTPS API
+        const hostname = new URL(url).hostname;
+        const dnsTypes = ['A', 'AAAA', 'MX', 'TXT', 'NS'];
+        const results = {
+            url: url,
+            hostname: hostname,
+            timestamp: new Date().toISOString(),
+            records: {},
+        };
+
+        for (const type of dnsTypes) {
+            try {
+                const response = await fetch(`https://dns.google/resolve?name=${hostname}&type=${type}`);
+                const data = await response.json();
+                if (data.Answer) {
+                    results.records[type] = data.Answer.map(record => ({
+                        name: record.name,
+                        data: record.data,
+                        ttl: record.TTL,
+                    }));
+                }
+            } catch (e) {
+                console.warn(`Failed to fetch ${type} records:`, e);
+                results.records[type] = [];
+            }
+        }
+
+        return results;
+    } catch (error) {
+        throw new Error(`DNS lookup failed: ${error.message}`);
+    }
+}
+
+async function checkRobots(url) {
+    try {
+        const targetUrl = new URL(url);
+        const robotsUrl = `${targetUrl.protocol}//${targetUrl.hostname}/robots.txt`;
+        const sitemapUrl = `${targetUrl.protocol}//${targetUrl.hostname}/sitemap.xml`;
+        
+        const results = {
+            url: url,
+            timestamp: new Date().toISOString(),
+            robots: {
+                exists: false,
+                content: null,
+                rules: [],
+            },
+            sitemap: {
+                exists: false,
+                locations: [],
+            },
+        };
+
+        // Fetch robots.txt
+        try {
+            const robotsResponse = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(robotsUrl)}`);
+            if (robotsResponse.ok) {
+                const robotsText = await robotsResponse.text();
+                results.robots.exists = true;
+                results.robots.content = robotsText;
+                
+                // Parse robots.txt
+                const lines = robotsText.split('\n');
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (trimmed && !trimmed.startsWith('#')) {
+                        if (trimmed.toLowerCase().startsWith('sitemap:')) {
+                            results.sitemap.locations.push(trimmed.substring(8).trim());
+                        } else {
+                            results.robots.rules.push(trimmed);
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to fetch robots.txt:', e);
+        }
+
+        // Fetch sitemap if not found in robots.txt
+        if (results.sitemap.locations.length === 0) {
+            try {
+                const sitemapResponse = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(sitemapUrl)}`);
+                if (sitemapResponse.ok) {
+                    results.sitemap.exists = true;
+                    results.sitemap.locations.push(sitemapUrl);
+                }
+            } catch (e) {
+                console.warn('Failed to fetch sitemap.xml:', e);
+            }
+        }
+
+        return results;
+    } catch (error) {
+        throw new Error(`Robots.txt check failed: ${error.message}`);
+    }
+}
+
+async function findEmails(url) {
+    try {
+        const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
+        const html = await response.text();
+
+        const results = {
+            url: url,
+            timestamp: new Date().toISOString(),
+            emails: new Set(),
+            sources: {
+                html: 0,
+                mailto: 0,
+                text: 0,
+            },
+        };
+
+        // Regular expression for email addresses
+        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+        
+        // Find emails in HTML content
+        const htmlEmails = html.match(emailRegex) || [];
+        htmlEmails.forEach(email => {
+            results.emails.add(email);
+            results.sources.html++;
+        });
+
+        // Find mailto: links
+        const mailtoRegex = /mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+        const mailtoMatches = html.match(mailtoRegex) || [];
+        mailtoMatches.forEach(match => {
+            const email = match.replace('mailto:', '');
+            results.emails.add(email);
+            results.sources.mailto++;
+        });
+
+        // Convert Set to Array for JSON serialization
+        results.emails = Array.from(results.emails);
+        
+        return results;
+    } catch (error) {
+        throw new Error(`Email finder failed: ${error.message}`);
+    }
+}
+
 // UI Helper functions
 function showLoading() {
     loadingDiv.classList.remove('hidden');
@@ -213,6 +368,15 @@ function showResults(data) {
             break;
         case 'header-check':
             formattedResults = formatHeaderResults(data);
+            break;
+        case 'dns-lookup':
+            formattedResults = formatDNSResults(data);
+            break;
+        case 'robots-check':
+            formattedResults = formatRobotsResults(data);
+            break;
+        case 'email-finder':
+            formattedResults = formatEmailResults(data);
             break;
         default:
             formattedResults = JSON.stringify(data, null, 2);
@@ -252,6 +416,70 @@ ${Object.entries(data.headers)
     .map(([key, value]) => `${key}: ${value}`)
     .join('\n')}
 `.trim();
+}
+
+function formatDNSResults(data) {
+    const lines = [
+        `DNS Lookup Results for ${data.hostname}`,
+        `Timestamp: ${data.timestamp}\n`,
+    ];
+
+    for (const [type, records] of Object.entries(data.records)) {
+        lines.push(`${type} Records:`);
+        if (records.length === 0) {
+            lines.push('  No records found');
+        } else {
+            records.forEach(record => {
+                lines.push(`  ${record.name} -> ${record.data} (TTL: ${record.ttl})`);
+            });
+        }
+        lines.push('');
+    }
+
+    return lines.join('\n');
+}
+
+function formatRobotsResults(data) {
+    const lines = [
+        `Robots.txt Analysis for ${data.url}`,
+        `Timestamp: ${data.timestamp}\n`,
+    ];
+
+    lines.push('Robots.txt Status:');
+    if (data.robots.exists) {
+        lines.push('✓ Found');
+        lines.push('\nRules:');
+        data.robots.rules.forEach(rule => lines.push(`  ${rule}`));
+    } else {
+        lines.push('✗ Not Found');
+    }
+
+    lines.push('\nSitemap Status:');
+    if (data.sitemap.locations.length > 0) {
+        lines.push('✓ Found at:');
+        data.sitemap.locations.forEach(url => lines.push(`  ${url}`));
+    } else {
+        lines.push('✗ Not Found');
+    }
+
+    return lines.join('\n');
+}
+
+function formatEmailResults(data) {
+    const lines = [
+        `Email Finder Results for ${data.url}`,
+        `Timestamp: ${data.timestamp}\n`,
+        `Found ${data.emails.length} unique email(s)\n`,
+        'Sources:',
+        `  HTML Content: ${data.sources.html}`,
+        `  Mailto Links: ${data.sources.mailto}`,
+        `  Plain Text: ${data.sources.text}\n`,
+        'Email Addresses:',
+    ];
+
+    data.emails.forEach(email => lines.push(`  • ${email}`));
+    
+    return lines.join('\n');
 }
 
 // Initialize the page
