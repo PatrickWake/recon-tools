@@ -73,6 +73,15 @@ form.addEventListener('submit', async (e) => {
             case 'header-check':
                 results = await analyzeHeaders(targetUrl);
                 break;
+            case 'dns-lookup':
+                results = await dnsLookup(url.hostname);
+                break;
+            case 'robots-check':
+                results = await analyzeRobots(targetUrl);
+                break;
+            case 'email-finder':
+                results = await findEmails(targetUrl);
+                break;
             default:
                 throw new Error('Tool not implemented');
         }
@@ -472,6 +481,169 @@ export async function analyzeHeaders(url) {
     }
 }
 
+// DNS Lookup
+export async function dnsLookup(domain) {
+    try {
+        const recordTypes = ['A', 'AAAA', 'MX', 'NS', 'TXT', 'SOA'];
+        const results = {
+            domain: domain,
+            timestamp: new Date().toISOString(),
+            records: {}
+        };
+
+        // Query each record type
+        await Promise.all(recordTypes.map(async (type) => {
+            try {
+                const response = await fetch(`https://dns.google/resolve?name=${domain}&type=${type}`);
+                if (!response.ok) {
+                    throw new Error(`DNS query failed: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data.Status === 0 && data.Answer) {
+                    results.records[type] = data.Answer.map(record => ({
+                        name: record.name,
+                        ttl: record.TTL,
+                        data: record.data
+                    }));
+                }
+            } catch (error) {
+                console.warn(`Failed to fetch ${type} records:`, error);
+            }
+        }));
+
+        return results;
+    } catch (error) {
+        throw new Error(`DNS lookup failed: ${error.message}`);
+    }
+}
+
+// Robots.txt Analysis
+export async function analyzeRobots(url) {
+    let robotsContent;
+    const parsedUrl = new URL(url);
+    const robotsUrl = `${parsedUrl.protocol}//${parsedUrl.hostname}/robots.txt`;
+
+    try {
+        // Try primary proxy first
+        try {
+            const proxyUrl = `${CORS_PROXY}${encodeURIComponent(robotsUrl)}`;
+            const response = await fetch(proxyUrl);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            robotsContent = await response.text();
+        } catch (primaryError) {
+            // If primary proxy fails, try fallback
+            console.warn('Primary proxy failed, trying fallback:', primaryError.message);
+            const fallbackUrl = `${FALLBACK_CORS_PROXY}${encodeURIComponent(robotsUrl)}`;
+            const response = await fetch(fallbackUrl);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            robotsContent = await response.text();
+        }
+
+        const results = {
+            url: robotsUrl,
+            timestamp: new Date().toISOString(),
+            rules: [],
+            sitemaps: []
+        };
+
+        // Parse robots.txt content
+        const lines = robotsContent.split('\n');
+        let currentUserAgent = '*';
+
+        for (const line of lines) {
+            const trimmedLine = line.trim().toLowerCase();
+            if (!trimmedLine || trimmedLine.startsWith('#')) continue;
+
+            if (trimmedLine.startsWith('user-agent:')) {
+                currentUserAgent = trimmedLine.split(':')[1].trim();
+            } else if (trimmedLine.startsWith('sitemap:')) {
+                const sitemap = line.split(':')[1].trim();
+                results.sitemaps.push(sitemap);
+            } else if (trimmedLine.startsWith('allow:') || trimmedLine.startsWith('disallow:')) {
+                const [type, path] = line.split(':').map(part => part.trim());
+                if (path) {
+                    results.rules.push({
+                        userAgent: currentUserAgent,
+                        type: type.toLowerCase(),
+                        path: path
+                    });
+                }
+            }
+        }
+
+        return results;
+    } catch (error) {
+        throw new Error(`Failed to analyze robots.txt: ${error.message}`);
+    }
+}
+
+// Email Finder
+export async function findEmails(url) {
+    let response;
+    let html;
+
+    try {
+        // Try primary proxy first
+        try {
+            const proxyUrl = `${CORS_PROXY}${encodeURIComponent(url)}`;
+            response = await fetch(proxyUrl);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            html = await response.text();
+        } catch (primaryError) {
+            // If primary proxy fails, try fallback
+            console.warn('Primary proxy failed, trying fallback:', primaryError.message);
+            const fallbackUrl = `${FALLBACK_CORS_PROXY}${encodeURIComponent(url)}`;
+            response = await fetch(fallbackUrl);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            html = await response.text();
+        }
+
+        const results = {
+            url: url,
+            timestamp: new Date().toISOString(),
+            emails: new Set(),
+            total: 0
+        };
+
+        // Regular expression for email addresses
+        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+        
+        // Find emails in HTML content
+        const matches = html.match(emailRegex) || [];
+        matches.forEach(email => results.emails.add(email.toLowerCase()));
+
+        // Find emails in mailto: links
+        const mailtoRegex = /mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+        let mailtoMatch;
+        while ((mailtoMatch = mailtoRegex.exec(html)) !== null) {
+            results.emails.add(mailtoMatch[1].toLowerCase());
+        }
+
+        results.emails = Array.from(results.emails);
+        results.total = results.emails.length;
+
+        return results;
+    } catch (error) {
+        throw new Error(`Failed to find emails: ${error.message}`);
+    }
+}
+
 // UI Helper functions
 function showLoading() {
     loadingDiv.classList.remove('hidden');
@@ -563,6 +735,62 @@ function showResults(data) {
 
         if (Object.keys(data.categorized).length === 0) {
             lines.push('No headers found');
+        }
+    } else if (currentTool === 'dns-lookup') {
+        lines = [
+            `DNS Lookup Results for ${data.domain}`,
+            `Timestamp: ${data.timestamp}\n`
+        ];
+
+        for (const [type, records] of Object.entries(data.records)) {
+            lines.push(`${type} Records:`);
+            records.forEach(record => {
+                lines.push(`  • ${record.name}`);
+                lines.push(`    TTL: ${record.ttl}`);
+                lines.push(`    Data: ${record.data}`);
+            });
+            lines.push('');
+        }
+
+        if (Object.keys(data.records).length === 0) {
+            lines.push('No DNS records found');
+        }
+    } else if (currentTool === 'robots-check') {
+        lines = [
+            `Robots.txt Analysis for ${data.url}`,
+            `Timestamp: ${data.timestamp}\n`
+        ];
+
+        if (data.sitemaps.length > 0) {
+            lines.push('Sitemaps:');
+            data.sitemaps.forEach(sitemap => {
+                lines.push(`  • ${sitemap}`);
+            });
+            lines.push('');
+        }
+
+        if (data.rules.length > 0) {
+            lines.push('Crawling Rules:');
+            data.rules.forEach(rule => {
+                lines.push(`  • ${rule.type.toUpperCase()} ${rule.path}`);
+                lines.push(`    User-Agent: ${rule.userAgent}`);
+            });
+        } else {
+            lines.push('No crawling rules found');
+        }
+    } else if (currentTool === 'email-finder') {
+        lines = [
+            `Email Finder Results for ${data.url}`,
+            `Timestamp: ${data.timestamp}`,
+            `Found ${data.total} email addresses:\n`
+        ];
+
+        if (data.total > 0) {
+            data.emails.forEach(email => {
+                lines.push(`  • ${email}`);
+            });
+        } else {
+            lines.push('No email addresses found');
         }
     } else {
         lines = ['Unsupported tool'];
