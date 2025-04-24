@@ -2,10 +2,11 @@
   "name": "recon-tools",
   "version": "1.0.0",
   "description": "Cloud-Native Security Analysis Tools",
+  "type": "module",
   "scripts": {
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage"
   },
   "repository": {
     "type": "git",
@@ -35,6 +36,9 @@
     "moduleDirectories": ["node_modules", "docs/js"],
     "collectCoverageFrom": [
       "docs/js/**/*.js"
-    ]
+    ],
+    "transform": {
+      "^.+\\.js$": "babel-jest"
+    }
   }
 } 

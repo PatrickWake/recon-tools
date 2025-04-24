@@ -135,7 +135,7 @@ form.addEventListener('submit', async (e) => {
 });
 
 // Tool Implementations
-async function detectCMS(url) {
+export async function detectCMS(url) {
     try {
         const proxyUrl = `${CORS_PROXY}${encodeURIComponent(url)}`;
         const response = await fetch(proxyUrl);
@@ -198,7 +198,7 @@ async function detectCMS(url) {
     }
 }
 
-async function checkHeaders(url) {
+export async function checkHeaders(url) {
     try {
         const proxyUrl = `${CORS_PROXY}${encodeURIComponent(url)}`;
         const response = await fetch(proxyUrl, { method: 'HEAD' });
@@ -222,7 +222,7 @@ async function checkHeaders(url) {
     }
 }
 
-async function dnsLookup(url) {
+export async function dnsLookup(url) {
     try {
         const hostname = new URL(url).hostname;
         const response = await fetch(`https://dns.google/resolve?name=${hostname}`);
@@ -244,7 +244,7 @@ async function dnsLookup(url) {
     }
 }
 
-async function checkRobots(url) {
+export async function checkRobots(url) {
     try {
         const robotsUrl = new URL('/robots.txt', url).href;
         const proxyUrl = `${CORS_PROXY}${encodeURIComponent(robotsUrl)}`;
@@ -267,7 +267,7 @@ async function checkRobots(url) {
     }
 }
 
-async function findEmails(url) {
+export async function findEmails(url) {
     try {
         const proxyUrl = `${CORS_PROXY}${encodeURIComponent(url)}`;
         const response = await fetch(proxyUrl);
@@ -292,24 +292,24 @@ async function findEmails(url) {
 }
 
 // UI Helper functions
-function showLoading() {
+export function showLoading() {
     loadingDiv.classList.remove('hidden');
 }
 
-function hideLoading() {
+export function hideLoading() {
     loadingDiv.classList.add('hidden');
 }
 
-function showError(message) {
+export function showError(message) {
     errorMessage.textContent = message;
     errorDiv.classList.remove('hidden');
 }
 
-function hideError() {
+export function hideError() {
     errorDiv.classList.add('hidden');
 }
 
-function showResults(data) {
+export function showResults(data) {
     let formattedResults = '';
     
     switch (currentTool) {
@@ -336,12 +336,12 @@ function showResults(data) {
     resultsDiv.classList.remove('hidden');
 }
 
-function hideResults() {
+export function hideResults() {
     resultsDiv.classList.add('hidden');
 }
 
 // Results formatters
-function formatCMSResults(data) {
+export function formatCMSResults(data) {
     if (!data.detected) {
         return `No CMS detected for ${data.url}\nTimestamp: ${data.timestamp}`;
     }
@@ -357,7 +357,7 @@ ${data.matches.map(match => `• ${match}`).join('\n')}
 `.trim();
 }
 
-function formatHeaderResults(data) {
+export function formatHeaderResults(data) {
     return `
 HTTP Headers for ${data.url}
 Timestamp: ${data.timestamp}
@@ -368,7 +368,7 @@ ${Object.entries(data.headers)
 `.trim();
 }
 
-function formatDNSResults(data) {
+export function formatDNSResults(data) {
     const lines = [
         `DNS Lookup Results for ${data.hostname}`,
         `Timestamp: ${data.timestamp}\n`,
@@ -389,7 +389,7 @@ function formatDNSResults(data) {
     return lines.join('\n');
 }
 
-function formatRobotsResults(data) {
+export function formatRobotsResults(data) {
     const lines = [
         `Robots.txt Analysis for ${data.url}`,
         `Timestamp: ${data.timestamp}\n`,
@@ -407,7 +407,7 @@ function formatRobotsResults(data) {
     return lines.join('\n');
 }
 
-function formatEmailResults(data) {
+export function formatEmailResults(data) {
     const lines = [
         `Email Finder Results for ${data.url}`,
         `Timestamp: ${data.timestamp}\n`,

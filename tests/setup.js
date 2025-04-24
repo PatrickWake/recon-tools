@@ -1,5 +1,4 @@
-// Polyfill fetch for Node.js environment
-require('whatwg-fetch');
+import 'whatwg-fetch';
 
 // Mock DOM elements
 document.body.innerHTML = `

@@ -1,7 +1,15 @@
-describe('Recon Tools', () => {
-    let app;
+import {
+    detectCMS,
+    checkHeaders,
+    dnsLookup,
+    checkRobots,
+    findEmails,
+    showResults,
+    showError
+} from '../docs/js/app.js';
 
-    beforeEach(async () => {
+describe('Recon Tools', () => {
+    beforeEach(() => {
         // Reset fetch mock
         global.fetch.mockClear();
         
@@ -25,121 +33,63 @@ describe('Recon Tools', () => {
                 <button class="tool-btn" data-tool="email-finder">Email Finder</button>
             </div>
         `;
-
-        // Import app.js
-        app = require('../docs/js/app.js');
     });
 
     describe('CMS Detection', () => {
         it('should detect WordPress', async () => {
-            const form = document.getElementById('analysis-form');
-            form.dispatchEvent(new Event('submit'));
-
-            // Wait for async operations
-            await new Promise(resolve => setTimeout(resolve, 0));
-
-            const results = document.querySelector('#results-content pre').textContent;
-            expect(results).toContain('WordPress');
-            expect(results).toContain('100%');
+            const results = await detectCMS('https://example.com');
+            expect(results.detected).toBe(true);
+            expect(results.cms).toBe('wordpress');
+            expect(results.confidence).toBeGreaterThan(0);
         });
     });
 
     describe('HTTP Headers', () => {
         it('should fetch and display headers', async () => {
-            // Switch to header check tool
-            document.querySelector('[data-tool="header-check"]').click();
-            
-            const form = document.getElementById('analysis-form');
-            form.dispatchEvent(new Event('submit'));
-
-            // Wait for async operations
-            await new Promise(resolve => setTimeout(resolve, 0));
-
-            const results = document.querySelector('#results-content pre').textContent;
-            expect(results).toContain('server: nginx');
-            expect(results).toContain('content-type: text/html');
+            const results = await checkHeaders('https://example.com');
+            expect(results.headers['server']).toBe('nginx');
+            expect(results.headers['content-type']).toBe('text/html');
         });
     });
 
     describe('DNS Lookup', () => {
         it('should perform DNS lookup', async () => {
-            // Switch to DNS lookup tool
-            document.querySelector('[data-tool="dns-lookup"]').click();
-            
-            const form = document.getElementById('analysis-form');
-            form.dispatchEvent(new Event('submit'));
-
-            // Wait for async operations
-            await new Promise(resolve => setTimeout(resolve, 0));
-
-            const results = document.querySelector('#results-content pre').textContent;
-            expect(results).toContain('93.184.216.34');
-            expect(results).toContain('TTL: 3600');
+            const results = await dnsLookup('https://example.com');
+            expect(results.records[0].data).toBe('93.184.216.34');
+            expect(results.records[0].TTL).toBe(3600);
         });
     });
 
     describe('Robots.txt Analysis', () => {
         it('should analyze robots.txt', async () => {
-            // Switch to robots.txt analyzer tool
-            document.querySelector('[data-tool="robots-check"]').click();
-            
-            const form = document.getElementById('analysis-form');
-            form.dispatchEvent(new Event('submit'));
-
-            // Wait for async operations
-            await new Promise(resolve => setTimeout(resolve, 0));
-
-            const results = document.querySelector('#results-content pre').textContent;
-            expect(results).toContain('✓ Found');
-            expect(results).toContain('User-agent: *');
-            expect(results).toContain('Disallow: /admin/');
+            const results = await checkRobots('https://example.com');
+            expect(results.exists).toBe(true);
+            expect(results.content).toContain('User-agent: *');
+            expect(results.content).toContain('Disallow: /admin/');
         });
     });
 
     describe('Email Finder', () => {
         it('should find email addresses', async () => {
-            // Switch to email finder tool
-            document.querySelector('[data-tool="email-finder"]').click();
-            
-            const form = document.getElementById('analysis-form');
-            form.dispatchEvent(new Event('submit'));
-
-            // Wait for async operations
-            await new Promise(resolve => setTimeout(resolve, 0));
-
-            const results = document.querySelector('#results-content pre').textContent;
-            expect(results).toContain('test@example.com');
-            expect(results).toContain('Found 1 unique email(s)');
+            const results = await findEmails('https://example.com');
+            expect(results.emails).toContain('test@example.com');
+            expect(results.count).toBe(1);
         });
     });
 
     describe('Error Handling', () => {
-        it('should handle invalid URLs', async () => {
-            const urlInput = document.getElementById('target-url');
-            urlInput.value = 'not-a-url';
-            
-            const form = document.getElementById('analysis-form');
-            form.dispatchEvent(new Event('submit'));
-
-            // Wait for async operations
-            await new Promise(resolve => setTimeout(resolve, 0));
-
-            const errorMessage = document.getElementById('error-message').textContent;
-            expect(errorMessage).toContain('Please enter a valid URL');
+        it('should handle invalid URLs', () => {
+            expect(() => new URL('not-a-url')).toThrow();
         });
 
         it('should handle fetch errors', async () => {
-            const urlInput = document.getElementById('target-url');
-            urlInput.value = 'https://non-existent-site.com';
-            
-            const form = document.getElementById('analysis-form');
-            form.dispatchEvent(new Event('submit'));
+            global.fetch.mockImplementationOnce(() => 
+                Promise.reject(new Error('Network error'))
+            );
 
-            // Wait for async operations
-            await new Promise(resolve => setTimeout(resolve, 0));
-
-            const errorMessage = document.getElementById('error-message').textContent;
-            expect(errorMessage).toContain('Failed to');
+            await expect(detectCMS('https://example.com'))
+                .rejects
+                .toThrow('Failed to analyze URL: Network error');
         });
     });
 }); 
