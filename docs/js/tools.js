@@ -250,15 +250,16 @@ export async function analyzeHeaders(url, testMode = false) {
         .map(([key]) => key),
     };
   } catch (error) {
-    if (error.message.includes('Network error after fallback for analyzeHeaders')) {
+    // If the error is our specific network error from dual proxy failure
+    if (error.message === 'Network error after fallback for analyzeHeaders') {
       throw new Error('Failed to analyze headers: Network error');
     }
-    // Check for HTTP error specifically from fetchWithProxy
-    if (error.message.includes('HTTP error! status:')) {
+    // If the error is from fetchWithProxy due to bad HTTP status
+    if (error.message.startsWith('HTTP error! status:')) {
       throw new Error(`Failed to analyze headers: ${error.message}`);
     }
-    // Generic fallback for other errors during proxy attempts or header processing
-    throw new Error(`Failed to analyze headers: ${error.message}`);
+    // Otherwise, it's some other unexpected error, including direct network errors on the first proxy if not caught by the above
+    throw new Error(`Failed to analyze headers: Unexpected error - ${error.message}`);
   }
 }
 

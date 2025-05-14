@@ -88,4 +88,15 @@ describe('DNS Lookup Tool', () => {
     expect(result).toHaveProperty('domain', 'example.com');
     expect(result.records).toEqual({});
   });
+
+  test('handles network error', async () => {
+    document.querySelector('[data-tool="tech-detect"]').click();
+    const originalFetch = global.fetch; // Store original
+    global.fetch = jest.fn(() => Promise.reject(new Error('Network error'))); // Override
+    form.dispatchEvent(new Event('submit'));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(errorMessage.textContent).toContain('Network error');
+    expect(errorDiv.classList.contains('hidden')).toBe(false);
+    global.fetch = originalFetch; // Restore
+  });
 });

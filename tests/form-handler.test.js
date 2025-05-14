@@ -94,11 +94,13 @@ describe('Form Handler', () => {
 
   test('handles network error', async () => {
     document.querySelector('[data-tool="tech-detect"]').click();
-    global.fetch = jest.fn(() => Promise.reject(new Error('Network error')));
+    const originalFetch = global.fetch; // Store original fetch from setup.js
+    global.fetch = jest.fn(() => Promise.reject(new Error('Network error'))); // Override for this test
     form.dispatchEvent(new Event('submit'));
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise(resolve => setTimeout(resolve, 0));
     expect(errorMessage.textContent).toContain('Network error');
     expect(errorDiv.classList.contains('hidden')).toBe(false);
+    global.fetch = originalFetch; // Restore original fetch
   });
 
   const toolTests = [
