@@ -2,7 +2,7 @@
 export const logger = {
   warn(message, error = null) {
     // In development, log to console
-    if (process.env.NODE_ENV !== 'production') {
+    if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {
       console.warn(message, error);
     }
     // In production, could send to error tracking service
@@ -11,7 +11,7 @@ export const logger = {
 
   error(message, error = null) {
     // In development, log to console
-    if (process.env.NODE_ENV !== 'production') {
+    if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') {
       console.error(message, error);
     }
     // In production, could send to error tracking service

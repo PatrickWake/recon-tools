@@ -1,201 +1,147 @@
 import { jest } from '@jest/globals';
-import { handleFormSubmit, handleToolSelection } from '../docs/js/app.js';
+import '../docs/js/app.js';
 
-describe('Form Handler and Tool Selection', () => {
+describe('Form Handler', () => {
   let form;
   let urlInput;
   let resultsDiv;
-  let loadingDiv;
   let errorDiv;
+  let loadingDiv;
+  let resultsContent;
+  let errorMessage;
 
   beforeEach(() => {
-    // Set test environment
-    process.env.NODE_ENV = 'test';
-
-    // Setup DOM elements
+    // Reset DOM elements
     document.body.innerHTML = `
-      <form id="analysis-form">
-        <input type="url" id="target-url" value="https://example.com">
-      </form>
-      <div id="results" class="hidden">
-        <div id="results-content">
-          <pre></pre>
+      <form id="scanForm">
+        <input type="url" id="targetUrl" value="https://example.com">
+        <div class="tool-buttons">
+          <button type="button" class="tool-btn" data-tool="tech-detect">Tech Stack</button>
+          <button type="button" class="tool-btn" data-tool="cms-detect">CMS</button>
+          <button type="button" class="tool-btn" data-tool="headers">Headers</button>
+          <button type="button" class="tool-btn" data-tool="dns">DNS</button>
+          <button type="button" class="tool-btn" data-tool="robots">Robots.txt</button>
+          <button type="button" class="tool-btn" data-tool="emails">Emails</button>
         </div>
-      </div>
+        <button type="submit">Analyze</button>
+      </form>
+      <div id="loading" class="hidden">Loading...</div>
       <div id="error" class="hidden">
-        <p id="error-message"></p>
+        <p id="errorMessage"></p>
       </div>
-      <div id="loading" class="hidden"></div>
-      <div class="tool-buttons">
-        <button class="tool-btn active" data-tool="cms-detect">CMS Detector</button>
-        <button class="tool-btn" data-tool="header-check">HTTP Header Analyzer</button>
-        <button class="tool-btn" data-tool="dns-lookup">DNS Lookup</button>
+      <div id="results" class="hidden">
+        <h3 id="resultsTitle"></h3>
+        <pre id="resultsContent"></pre>
       </div>
     `;
 
-    form = document.getElementById('analysis-form');
-    urlInput = document.getElementById('target-url');
+    // Get DOM elements
+    form = document.getElementById('scanForm');
+    urlInput = document.getElementById('targetUrl');
     resultsDiv = document.getElementById('results');
-    loadingDiv = document.getElementById('loading');
     errorDiv = document.getElementById('error');
+    loadingDiv = document.getElementById('loading');
+    resultsContent = document.getElementById('resultsContent');
+    errorMessage = document.getElementById('errorMessage');
 
     // Mock fetch
-    global.fetch = jest.fn();
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({
+          cms: { name: 'WordPress', confidence: 100 },
+          headers: { server: 'nginx' },
+          dns: { A: ['93.184.216.34'] },
+          robots: { sitemaps: ['sitemap.xml'] },
+          emails: ['test@example.com'],
+          tech: ['PHP', 'MySQL']
+        })
+      })
+    );
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   test('handles tool selection correctly', () => {
-    const cmsButton = document.querySelector('[data-tool="cms-detect"]');
-    const headerButton = document.querySelector('[data-tool="header-check"]');
-
-    // Simulate clicking header check button
-    handleToolSelection({ target: headerButton });
-
-    expect(cmsButton.classList.contains('active')).toBe(false);
-    expect(headerButton.classList.contains('active')).toBe(true);
-
-    // Simulate clicking CMS detect button
-    handleToolSelection({ target: cmsButton });
-
-    expect(cmsButton.classList.contains('active')).toBe(true);
-    expect(headerButton.classList.contains('active')).toBe(false);
-  });
-
-  test('form submission shows loading state', async () => {
-    // Mock successful response
-    global.fetch.mockImplementationOnce(
-      () =>
-        new Promise((resolve) =>
-          setTimeout(() => {
-            resolve({
-              ok: true,
-              headers: new Map([['x-powered-by', 'WordPress']]),
-              text: () => Promise.resolve('<meta name="generator" content="WordPress 6.0">'),
-            });
-          }, 100)
-        )
-    );
-
-    // Set active tool
-    const cmsButton = document.querySelector('[data-tool="cms-detect"]');
-    handleToolSelection({ target: cmsButton });
-
-    // Submit form
-    const event = { preventDefault: jest.fn(), target: form };
-    const promise = handleFormSubmit(event);
-
-    // Check loading state is shown immediately
-    expect(loadingDiv.classList.contains('hidden')).toBe(false);
-    expect(resultsDiv.classList.contains('hidden')).toBe(true);
-    expect(errorDiv.classList.contains('hidden')).toBe(true);
-
-    // Wait for completion
-    await promise;
-  });
-
-  test('form submission handles successful response', async () => {
-    // Mock successful CMS detection
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      headers: new Map([['x-powered-by', 'WordPress']]),
-      text: () => Promise.resolve('<meta name="generator" content="WordPress 6.0">'),
+    const buttons = document.querySelectorAll('.tool-btn');
+    buttons.forEach(button => {
+      button.click();
+      expect(button.classList.contains('active')).toBe(true);
+      expect(document.querySelectorAll('.tool-btn.active').length).toBe(1);
     });
-
-    // Set active tool
-    const cmsButton = document.querySelector('[data-tool="cms-detect"]');
-    handleToolSelection({ target: cmsButton });
-
-    // Submit form
-    const event = { preventDefault: jest.fn(), target: form };
-    await handleFormSubmit(event);
-
-    expect(loadingDiv.classList.contains('hidden')).toBe(true);
-    expect(resultsDiv.classList.contains('hidden')).toBe(false);
-    expect(errorDiv.classList.contains('hidden')).toBe(true);
-
-    const resultsContent = document.querySelector('#results-content pre').textContent;
-    const results = JSON.parse(resultsContent);
-    expect(results.detected).toBe(true);
-    expect(results.cms).toBe('wordpress');
-    expect(results.confidence).toBeGreaterThan(40);
   });
 
-  test('form submission handles errors', async () => {
-    // Mock network error
-    global.fetch.mockRejectedValueOnce(new Error('Network error'));
-
-    // Set active tool
-    const cmsButton = document.querySelector('[data-tool="cms-detect"]');
-    handleToolSelection({ target: cmsButton });
-
-    // Submit form
-    const event = { preventDefault: jest.fn(), target: form };
-    await handleFormSubmit(event);
-
-    expect(loadingDiv.classList.contains('hidden')).toBe(true);
-    expect(resultsDiv.classList.contains('hidden')).toBe(true);
+  test('validates URL format', async () => {
+    urlInput.value = 'invalid-url';
+    form.dispatchEvent(new Event('submit'));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(errorMessage.textContent).toBe('Please enter a valid URL');
     expect(errorDiv.classList.contains('hidden')).toBe(false);
-
-    const errorMessage = document.querySelector('#error-message').textContent;
-    expect(errorMessage).toContain('Network error');
   });
 
-  test('form submission validates URL', async () => {
-    // Set invalid URL
-    urlInput.value = 'not-a-url';
-
-    // Set active tool
-    const cmsButton = document.querySelector('[data-tool="cms-detect"]');
-    handleToolSelection({ target: cmsButton });
-
-    // Submit form
-    const event = { preventDefault: jest.fn(), target: form };
-    await handleFormSubmit(event);
-
-    // Check that error is shown and loading/results are hidden
-    expect(loadingDiv.classList.contains('hidden')).toBe(true);
-    expect(resultsDiv.classList.contains('hidden')).toBe(true);
+  test('handles empty URL', async () => {
+    urlInput.value = '';
+    form.dispatchEvent(new Event('submit'));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(errorMessage.textContent).toBe('Please enter a URL');
     expect(errorDiv.classList.contains('hidden')).toBe(false);
-
-    const errorMessage = document.querySelector('#error-message').textContent;
-    expect(errorMessage).toBe(
-      'Invalid URL. Please enter a valid URL including http:// or https://'
-    );
   });
 
-  test('form submission handles different tools', async () => {
-    // Test CMS detection
-    const cmsButton = document.querySelector('[data-tool="cms-detect"]');
-    handleToolSelection({ target: cmsButton });
+  test('handles network error', async () => {
+    global.fetch = jest.fn(() => Promise.reject(new Error('Network error')));
+    form.dispatchEvent(new Event('submit'));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(errorMessage.textContent).toContain('Network error');
+    expect(errorDiv.classList.contains('hidden')).toBe(false);
+  });
 
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      headers: new Map([['x-powered-by', 'WordPress']]),
-      text: () => Promise.resolve('<meta name="generator" content="WordPress 6.0">'),
+  const toolTests = [
+    {
+      tool: 'tech-detect',
+      expectedTitle: 'Technology Stack Detection Results',
+      expectedContent: 'PHP'
+    },
+    {
+      tool: 'cms-detect',
+      expectedTitle: 'CMS Detection Results',
+      expectedContent: 'WordPress'
+    },
+    {
+      tool: 'headers',
+      expectedTitle: 'HTTP Headers Analysis Results',
+      expectedContent: 'nginx'
+    },
+    {
+      tool: 'dns',
+      expectedTitle: 'DNS Lookup Results',
+      expectedContent: '93.184.216.34'
+    },
+    {
+      tool: 'robots',
+      expectedTitle: 'Robots.txt Analysis Results',
+      expectedContent: 'sitemap.xml'
+    },
+    {
+      tool: 'emails',
+      expectedTitle: 'Email Addresses Found',
+      expectedContent: 'test@example.com'
+    }
+  ];
+
+  toolTests.forEach(({ tool, expectedTitle, expectedContent }) => {
+    test(`handles ${tool} analysis correctly`, async () => {
+      const toolBtn = document.querySelector(`[data-tool="${tool}"]`);
+      toolBtn.click();
+      form.dispatchEvent(new Event('submit'));
+      
+      await new Promise(resolve => setTimeout(resolve, 0));
+      
+      expect(loadingDiv.classList.contains('hidden')).toBe(true);
+      expect(resultsDiv.classList.contains('hidden')).toBe(false);
+      expect(document.getElementById('resultsTitle').textContent).toBe(expectedTitle);
+      expect(resultsContent.textContent).toContain(expectedContent);
     });
-
-    let event = { preventDefault: jest.fn(), target: form };
-    await handleFormSubmit(event);
-
-    let resultsContent = document.querySelector('#results-content pre').textContent;
-    const cmsResults = JSON.parse(resultsContent);
-    expect(cmsResults.title).toBe('CMS Detection Results');
-    expect(cmsResults.detected).toBe(true);
-
-    // Test header check
-    const headerButton = document.querySelector('[data-tool="header-check"]');
-    handleToolSelection({ target: headerButton });
-
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      headers: new Map([['server', 'nginx']]),
-      text: () => Promise.resolve(''),
-    });
-
-    event = { preventDefault: jest.fn(), target: form };
-    await handleFormSubmit(event);
-
-    resultsContent = document.querySelector('#results-content pre').textContent;
-    const headerResults = JSON.parse(resultsContent);
-    expect(headerResults.title).toBe('HTTP Headers Analysis');
   });
 });
