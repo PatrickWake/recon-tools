@@ -9,42 +9,26 @@ describe('DNS Lookup Tool', () => {
   });
 
   test('correctly fetches and parses DNS records', async () => {
-    // Mock responses for different record types
     const mockResponses = {
-      A: {
-        Status: 0,
-        Answer: [{ name: 'example.com.', TTL: 3600, data: '93.184.216.34' }],
-      },
-      AAAA: {
-        Status: 0,
-        Answer: [{ name: 'example.com.', TTL: 3600, data: '2606:2800:220:1:248:1893:25c8:1946' }],
-      },
-      MX: {
-        Status: 0,
-        Answer: [{ name: 'example.com.', TTL: 3600, data: '10 mail.example.com.' }],
-      },
-      // Add other record types if dnsLookup queries them by default and setup.js doesn't cover them
+      A: { Status: 0, Answer: [{ name: 'example.com.', TTL: 3600, data: '93.184.216.34' }] },
+      AAAA: { Status: 0, Answer: [{ name: 'example.com.', TTL: 3600, data: '2606:2800:220:1:248:1893:25c8:1946' }] },
+      MX: { Status: 0, Answer: [{ name: 'example.com.', TTL: 3600, data: '10 mail.example.com.' }] },
       NS: { Status: 0, Answer: [{ name: 'example.com.', TTL: 3600, data: 'ns1.example.com.' }] },
       TXT: { Status: 0, Answer: [{ name: 'example.com.', TTL: 3600, data: 'sample text record' }] },
-      SOA: {
-        Status: 0,
-        Answer: [
-          {
-            name: 'example.com.',
-            TTL: 3600,
-            data: 'ns1.example.com. hostmaster.example.com. 1 7200 3600 1209600 3600',
-          },
-        ],
-      },
+      SOA: { Status: 0, Answer: [{ name: 'example.com.', TTL: 3600, data: 'ns1.example.com. hostmaster.example.com. 1 7200 3600 1209600 3600' }] },
     };
 
-    global.fetch
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockResponses.A) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockResponses.AAAA) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockResponses.MX) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockResponses.NS) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockResponses.TXT) })
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockResponses.SOA) });
+    global.fetch.mockImplementation(async (url) => {
+      // Extract type from URL, e.g., https://dns.google/resolve?name=example.com&type=A
+      const typeMatch = url.match(/type=([A-Z]+)/);
+      const type = typeMatch ? typeMatch[1] : null;
+
+      if (type && mockResponses[type]) {
+        return { ok: true, json: async () => mockResponses[type] };
+      }
+      // Fallback for unrecognised types or if type isn't in URL (shouldn't happen for dns.google)
+      return { ok: false, status: 404, json: async () => ({ error: 'Unknown type' }) };
+    });
 
     const result = await dnsLookup('example.com');
 
@@ -67,14 +51,12 @@ describe('DNS Lookup Tool', () => {
   });
 
   test('handles invalid responses gracefully', async () => {
-    global.fetch
-      .mockRejectedValueOnce(new Error('Primary proxy network failure'))
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        statusText: 'Internal Server Error',
-        json: () => Promise.resolve({ error: 'Server Error' }), // Ensure json() exists
-      });
+    global.fetch.mockResolvedValue({ // For dnsLookup, direct fetch, not proxied
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+      json: () => Promise.resolve({ error: 'Server Error' }), // Add json method
+    });
 
     const result = await dnsLookup('example.com');
     expect(result).toHaveProperty('domain', 'example.com');
