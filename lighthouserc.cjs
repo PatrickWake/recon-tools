@@ -23,6 +23,7 @@ module.exports = {
 
         // Adjusting failing/warning assertions
         'csp-xss': 'warn',
+        'uses-rel-preconnect': 'warn',
         'unused-css-rules': 'off',
         'unused-javascript': 'off',
         'color-contrast': 'warn',

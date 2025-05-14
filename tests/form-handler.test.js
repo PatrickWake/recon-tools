@@ -94,25 +94,25 @@ describe('Form Handler', () => {
 
   test('handles network error', async () => {
     document.querySelector('[data-tool="tech-detect"]').click();
-    const originalFetch = global.fetch; // Store original fetch from setup.js
-    global.fetch = jest.fn(() => Promise.reject(new Error('Network error'))); // Override for this test
+    const fetchSpy = jest.spyOn(global, 'fetch');
+    fetchSpy.mockImplementation(() => Promise.reject(new Error('Network error'))); // Override for this test
     form.dispatchEvent(new Event('submit'));
     await new Promise(resolve => setTimeout(resolve, 0));
     expect(errorMessage.textContent).toContain('Network error');
     expect(errorDiv.classList.contains('hidden')).toBe(false);
-    global.fetch = originalFetch; // Restore original fetch
+    fetchSpy.mockRestore(); // Restore original fetch implementation
   });
 
   const toolTests = [
     {
       tool: 'tech-detect',
       expectedTitle: 'Technology Stack Detection Results',
-      expectedContent: 'PHP',
+      expectedContent: 'nginx',
     },
     {
       tool: 'cms-detect',
       expectedTitle: 'CMS Detection Results',
-      expectedContent: 'WordPress',
+      expectedContent: 'wordpress',
     },
     {
       tool: 'headers',

@@ -217,7 +217,12 @@ export async function analyzeHeaders(url, testMode = false) {
         logger.warn('Primary proxy failed, trying fallback for analyzeHeaders', error);
         try {
           response = await fetchWithProxy(url, FALLBACK_CORS_PROXY);
-        } catch (fallbackError) {
+        } catch (fallbackProxyError) {
+          // If fetchWithProxy for fallback threw an HTTP status error, rethrow that directly
+          if (fallbackProxyError.message.startsWith('HTTP error! status:')) {
+            throw fallbackProxyError;
+          }
+          // Otherwise, it's a network failure for the fallback proxy.
           throw new Error('Network error after fallback for analyzeHeaders');
         }
       }
