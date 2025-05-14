@@ -39,12 +39,12 @@ describe('DNS Lookup Tool', () => {
     };
 
     global.fetch
-      .mockResolvedValueOnce(mockResponses.A)
-      .mockResolvedValueOnce(mockResponses.AAAA)
-      .mockResolvedValueOnce(mockResponses.MX)
-      .mockResolvedValueOnce(mockResponses.NS)
-      .mockResolvedValueOnce(mockResponses.TXT)
-      .mockResolvedValueOnce(mockResponses.SOA);
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockResponses.A) })
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockResponses.AAAA) })
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockResponses.MX) })
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockResponses.NS) })
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockResponses.TXT) })
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockResponses.SOA) });
 
     const result = await dnsLookup('example.com');
 
@@ -73,7 +73,7 @@ describe('DNS Lookup Tool', () => {
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',
-        headers: new Map(),
+        json: () => Promise.resolve({ error: 'Server Error' }), // Ensure json() exists
       });
 
     const result = await dnsLookup('example.com');

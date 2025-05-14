@@ -82,7 +82,7 @@ describe('Form Handler', () => {
     global.fetch = originalGlobalFetch;
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Reset DOM elements
     document.body.innerHTML = `
       <form id="scanForm">
@@ -152,7 +152,7 @@ describe('Form Handler', () => {
 
     // Dynamically import app and init AFTER fetch is mocked for this suite.
     // This is to ensure app.js uses this suite's fetch mock.
-    const appModule = require('../docs/js/app.js');
+    const appModule = await import('../docs/js/app.js');
     appModule.init();
   });
 
