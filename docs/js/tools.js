@@ -10,11 +10,11 @@ const FALLBACK_CORS_PROXY = 'https://api.codetabs.com/v1/proxy?quest='; // Fallb
 async function fetchWithProxy(url, proxyUrl) {
   const fullUrl = `${proxyUrl}${encodeURIComponent(url)}`;
   const response = await fetch(fullUrl);
-  
+
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
-  
+
   return response;
 }
 
@@ -33,7 +33,7 @@ function extractHeaders(response) {
 // Helper function to fetch content
 async function fetchContent(url, testMode = false) {
   let response;
-  
+
   if (testMode) {
     response = await fetch(url);
     if (!response.ok) {
@@ -58,10 +58,10 @@ async function fetchContent(url, testMode = false) {
       }
     }
   }
-  
+
   const html = await response.text();
   const headers = extractHeaders(response);
-  
+
   return { html, headers };
 }
 
@@ -237,7 +237,7 @@ export async function analyzeHeaders(url, testMode = false) {
       'strict-transport-security': normalizedHeaders['strict-transport-security'] || null,
       'x-content-type-options': normalizedHeaders['x-content-type-options'] || null,
       'x-frame-options': normalizedHeaders['x-frame-options'] || null,
-      'x-xss-protection': normalizedHeaders['x-xss-protection'] || null
+      'x-xss-protection': normalizedHeaders['x-xss-protection'] || null,
     };
 
     return {
@@ -247,7 +247,7 @@ export async function analyzeHeaders(url, testMode = false) {
       securityHeaders,
       missingSecurityHeaders: Object.entries(securityHeaders)
         .filter(([, value]) => !value)
-        .map(([key]) => key)
+        .map(([key]) => key),
     };
   } catch (error) {
     if (error.message.includes('Network error after fallback for analyzeHeaders')) {
@@ -424,14 +424,14 @@ export async function analyzeRobots(url) {
           rules.push({
             userAgent: currentUserAgent,
             type: 'allow',
-            path: value
+            path: value,
           });
           break;
         case 'disallow':
           rules.push({
             userAgent: currentUserAgent,
             type: 'disallow',
-            path: value
+            path: value,
           });
           break;
         case 'sitemap':
@@ -444,11 +444,13 @@ export async function analyzeRobots(url) {
       url: robotsUrl,
       timestamp: new Date().toISOString(),
       rules,
-      sitemaps
+      sitemaps,
     };
   } catch (error) {
     if (error.message.includes('HTTP error')) {
-      throw new Error(`Failed to analyze robots.txt: HTTP error! status: ${error.message.split('status: ')[1]}`);
+      throw new Error(
+        `Failed to analyze robots.txt: HTTP error! status: ${error.message.split('status: ')[1]}`
+      );
     }
     throw new Error(`Failed to analyze robots.txt: ${error.message}`);
   }
@@ -465,7 +467,7 @@ export async function findEmails(url) {
 
     // Find emails in text content
     const textEmails = content.match(emailRegex) || [];
-    textEmails.forEach(email => emailSet.add(email.toLowerCase()));
+    textEmails.forEach((email) => emailSet.add(email.toLowerCase()));
 
     // Find emails in mailto links
     const mailtoRegex = /mailto:([^"'\s]+)/g;
@@ -482,7 +484,7 @@ export async function findEmails(url) {
       url,
       timestamp: new Date().toISOString(),
       emails,
-      total: emails.length
+      total: emails.length,
     };
   } catch (error) {
     throw new Error(`Failed to find emails: ${error.message}`);
@@ -560,4 +562,4 @@ export async function analyzeSslTls(url, pollDelay = 5000, maxPolls = 60) {
     }
     throw new Error(`Failed to analyze SSL/TLS: ${error.message}`);
   }
-} 
+}

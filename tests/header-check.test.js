@@ -42,7 +42,10 @@ describe('HTTP Header Analyzer Tool', () => {
         'x-frame-options': 'SAMEORIGIN',
         'x-xss-protection': null,
       },
-      missingSecurityHeaders: expect.arrayContaining(['content-security-policy', 'x-xss-protection']),
+      missingSecurityHeaders: expect.arrayContaining([
+        'content-security-policy',
+        'x-xss-protection',
+      ]),
     });
   });
 
@@ -106,12 +109,10 @@ describe('HTTP Header Analyzer Tool', () => {
       ['content-type', 'text/html'],
     ]);
 
-    global.fetch
-      .mockRejectedValueOnce(new Error('Primary proxy failed'))
-      .mockResolvedValueOnce({
-        ok: true,
-        headers: mockHeaders,
-      });
+    global.fetch.mockRejectedValueOnce(new Error('Primary proxy failed')).mockResolvedValueOnce({
+      ok: true,
+      headers: mockHeaders,
+    });
 
     const result = await analyzeHeaders('https://example.com');
 

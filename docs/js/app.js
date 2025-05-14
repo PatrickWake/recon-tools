@@ -18,8 +18,8 @@ function handleToolSelection(event) {
   if (!button || button.disabled) return;
 
   // Remove active class from all buttons
-  document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-  
+  document.querySelectorAll('.tool-btn').forEach((btn) => btn.classList.remove('active'));
+
   // Add active class to clicked button
   button.classList.add('active');
 }
@@ -101,7 +101,7 @@ async function handleFormSubmit(event) {
 function init() {
   const urlInput = document.getElementById('targetUrl');
   const toolButtons = document.querySelectorAll('.tool-btn');
-  
+
   toolButtons?.forEach((button) => {
     if (!button.disabled) {
       button.addEventListener('click', handleToolSelection);
@@ -146,12 +146,12 @@ function showResults(results, resultsDiv, resultsContent, resultsTitle) {
   const titles = {
     'tech-detect': 'Technology Stack Detection Results',
     'cms-detect': 'CMS Detection Results',
-    'headers': 'HTTP Headers Analysis Results',
-    'dns': 'DNS Lookup Results',
-    'robots': 'Robots.txt Analysis Results',
-    'emails': 'Email Addresses Found',
+    headers: 'HTTP Headers Analysis Results',
+    dns: 'DNS Lookup Results',
+    robots: 'Robots.txt Analysis Results',
+    emails: 'Email Addresses Found',
     'ssl-tls': 'SSL/TLS Analysis Results',
-    'subdomains': 'Subdomain Scan Results'
+    subdomains: 'Subdomain Scan Results',
   };
   resultsTitle.textContent = titles[selectedTool] || 'Analysis Results';
 
@@ -171,4 +171,16 @@ function hideResults(resultsDiv) {
 }
 
 // Export functions needed for testing or other modules
-export { handleToolSelection, handleFormSubmit, detectCMS, detectTech, analyzeHeaders, dnsLookup, scanSubdomains, analyzeRobots, findEmails, analyzeSslTls, init }; // Export init for testing 
+export {
+  handleToolSelection,
+  handleFormSubmit,
+  detectCMS,
+  detectTech,
+  analyzeHeaders,
+  dnsLookup,
+  scanSubdomains,
+  analyzeRobots,
+  findEmails,
+  analyzeSslTls,
+  init,
+}; // Export init for testing

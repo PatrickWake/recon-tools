@@ -31,7 +31,8 @@ const mockResponses = {
   'https://example.com': {
     ok: true,
     status: 200,
-    text: () => Promise.resolve(`
+    text: () =>
+      Promise.resolve(`
         <!DOCTYPE html>
         <html>
             <head>
@@ -45,63 +46,63 @@ const mockResponses = {
         </html>
     `),
     headers: new Map([
-        ['server', 'nginx'],
-        ['content-type', 'text/html'],
-        ['x-powered-by', 'PHP/7.4.0']
-    ])
+      ['server', 'nginx'],
+      ['content-type', 'text/html'],
+      ['x-powered-by', 'PHP/7.4.0'],
+    ]),
   },
   'https://example.com/robots.txt': {
     ok: true,
     status: 200,
-    text: () => Promise.resolve(`
+    text: () =>
+      Promise.resolve(`
         User-agent: *
         Disallow: /admin/
         Allow: /
         
         Sitemap: https://example.com/sitemap.xml
-    `)
-  }
+    `),
+  },
 };
 
 // Mock fetch globally
 global.fetch = jest.fn((url) => {
-    // Handle proxy URLs by extracting the actual URL
-    const actualUrl = url.includes('corsproxy.io') ? 
-        decodeURIComponent(url.split('corsproxy.io/?')[1]) :
-        url.includes('api.codetabs.com') ?
-        decodeURIComponent(url.split('quest=')[1]) :
-        url;
+  // Handle proxy URLs by extracting the actual URL
+  const actualUrl = url.includes('corsproxy.io')
+    ? decodeURIComponent(url.split('corsproxy.io/?')[1])
+    : url.includes('api.codetabs.com')
+      ? decodeURIComponent(url.split('quest=')[1])
+      : url;
 
-    const response = mockResponses[actualUrl];
-    if (response) {
-        return Promise.resolve({
-            ...response,
-            // Ensure text method is properly mocked
-            text: response.text || (() => Promise.resolve('')),
-            // Ensure json method is properly mocked
-            json: () => Promise.resolve(response.json || {})
-        });
-    }
-
-    // Default mock response for DNS queries
-    if (url.startsWith('https://dns.google/resolve')) {
-        return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({
-                Status: 0,
-                Answer: [
-                    { name: 'example.com.', type: 1, TTL: 3600, data: '93.184.216.34' }
-                ]
-            })
-        });
-    }
-
-    // Default response for unmatched URLs
+  const response = mockResponses[actualUrl];
+  if (response) {
     return Promise.resolve({
-        ok: true,
-        status: 200,
-        text: () => Promise.resolve(''),
-        json: () => Promise.resolve({}),
-        headers: new Map()
+      ...response,
+      // Ensure text method is properly mocked
+      text: response.text || (() => Promise.resolve('')),
+      // Ensure json method is properly mocked
+      json: () => Promise.resolve(response.json || {}),
     });
+  }
+
+  // Default mock response for DNS queries
+  if (url.startsWith('https://dns.google/resolve')) {
+    return Promise.resolve({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          Status: 0,
+          Answer: [{ name: 'example.com.', type: 1, TTL: 3600, data: '93.184.216.34' }],
+        }),
+    });
+  }
+
+  // Default response for unmatched URLs
+  return Promise.resolve({
+    ok: true,
+    status: 200,
+    text: () => Promise.resolve(''),
+    json: () => Promise.resolve({}),
+    headers: new Map(),
+  });
 });

@@ -10,8 +10,8 @@ module.exports = {
       numberOfRuns: 3,
       settings: {
         preset: 'desktop',
-        chromeFlags: ['--no-sandbox']
-      }
+        chromeFlags: ['--no-sandbox'],
+      },
     },
     assert: {
       preset: 'lighthouse:no-pwa',
@@ -20,7 +20,7 @@ module.exports = {
         'categories:accessibility': ['warn', { minScore: 0.8 }],
         'categories:best-practices': ['warn', { minScore: 0.8 }],
         'categories:seo': ['warn', { minScore: 0.8 }],
-        
+
         // Adjusting failing/warning assertions
         'csp-xss': 'warn',
         'unused-css-rules': 'off',
@@ -30,11 +30,11 @@ module.exports = {
         'render-blocking-resources': 'warn',
         'uses-long-cache-ttl': 'off',
         'errors-in-console': 'warn',
-        'link-name': 'warn'
-      }
+        'link-name': 'warn',
+      },
     },
     upload: {
-      target: 'temporary-public-storage'
-    }
-  }
-}; 
+      target: 'temporary-public-storage',
+    },
+  },
+};
