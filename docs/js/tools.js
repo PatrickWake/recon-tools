@@ -47,7 +47,14 @@ async function fetchContent(url, testMode = false) {
       try {
         response = await fetchWithProxy(url, FALLBACK_CORS_PROXY);
       } catch (fallbackError) {
-        throw new Error('Network error');
+        // Prioritize HTTP errors from fallbacks or primary, then generic network error
+        if (fallbackError.message.includes('HTTP error! status:')) {
+          throw fallbackError;
+        }
+        if (error.message.includes('HTTP error! status:')) {
+          throw error;
+        }
+        throw new Error('Network error after both proxies failed');
       }
     }
   }
@@ -211,7 +218,6 @@ export async function analyzeHeaders(url, testMode = false) {
         try {
           response = await fetchWithProxy(url, FALLBACK_CORS_PROXY);
         } catch (fallbackError) {
-          // If both proxies fail, throw a generic network error to be caught by the main try-catch
           throw new Error('Network error after fallback for analyzeHeaders');
         }
       }
@@ -240,7 +246,7 @@ export async function analyzeHeaders(url, testMode = false) {
       headers: normalizedHeaders,
       securityHeaders,
       missingSecurityHeaders: Object.entries(securityHeaders)
-        .filter(([unusedKey, value]) => !value)
+        .filter(([, value]) => !value)
         .map(([key]) => key)
     };
   } catch (error) {

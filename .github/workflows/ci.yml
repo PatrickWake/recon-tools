@@ -125,6 +125,7 @@ jobs:
         with:
           configPath: './lighthouserc.cjs'
           uploadArtifacts: true
+          artifactName: lighthouse-report
 
       - name: Check bundle size
         uses: preactjs/compressed-size-action@v2

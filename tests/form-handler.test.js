@@ -45,22 +45,22 @@ describe('Form Handler', () => {
     resultsContent = document.getElementById('resultsContent');
     errorMessage = document.getElementById('errorMessage');
 
-    // Mock fetch
-    global.fetch = jest.fn(() =>
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({
-          cms: { name: 'WordPress', confidence: 100 },
-          headers: { server: 'nginx' },
-          dns: { A: ['93.184.216.34'] },
-          robots: { sitemaps: ['sitemap.xml'] },
-          emails: ['test@example.com'],
-          tech: ['PHP', 'MySQL']
-        })
-      })
-    );
+    // Mock fetch - REMOVING THIS LOCAL MOCK
+    // global.fetch = jest.fn(() =>
+    //   Promise.resolve({
+    //     ok: true,
+    //     json: () => Promise.resolve({
+    //       cms: { name: 'WordPress', confidence: 100 },
+    //       headers: { server: 'nginx' },
+    //       dns: { A: ['93.184.216.34'] },
+    //       robots: { sitemaps: ['sitemap.xml'] },
+    //       emails: ['test@example.com'],
+    //       tech: ['PHP', 'MySQL']
+    //     })
+    //   })
+    // );
     
-    initApp();
+    initApp(); // Initialize app listeners after DOM is set up
   });
 
   afterEach(() => {
@@ -93,6 +93,7 @@ describe('Form Handler', () => {
   });
 
   test('handles network error', async () => {
+    document.querySelector('[data-tool="tech-detect"]').click();
     global.fetch = jest.fn(() => Promise.reject(new Error('Network error')));
     form.dispatchEvent(new Event('submit'));
     await new Promise(resolve => setTimeout(resolve, 0));

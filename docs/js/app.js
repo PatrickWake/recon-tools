@@ -1,5 +1,3 @@
-import { logger } from './logger.js';
-
 // Import tool functions
 import {
   detectCMS,
@@ -13,8 +11,6 @@ import {
 } from './tools.js';
 
 // CORS Proxy configuration
-const CORS_PROXY = 'https://corsproxy.io/?'; // Primary proxy
-const FALLBACK_CORS_PROXY = 'https://api.codetabs.com/v1/proxy?quest='; // Fallback proxy
 
 // Tool selection handler
 function handleToolSelection(event) {
@@ -123,30 +119,6 @@ function init() {
 // Initialize the page if in a browser environment
 if (typeof window !== 'undefined') {
   document.addEventListener('DOMContentLoaded', init);
-}
-
-// Helper function to fetch with proxy
-async function fetchWithProxy(url, proxyUrl) {
-  const fullUrl = `${proxyUrl}${encodeURIComponent(url)}`;
-  const response = await fetch(fullUrl);
-  
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-  
-  return response;
-}
-
-// Helper function to extract headers
-function extractHeaders(response) {
-  if (response.headers instanceof Map) {
-    const headers = {};
-    for (const [key, value] of response.headers) {
-      headers[key.toLowerCase()] = value;
-    }
-    return headers;
-  }
-  return Object.fromEntries(response.headers);
 }
 
 // UI Helper Functions
