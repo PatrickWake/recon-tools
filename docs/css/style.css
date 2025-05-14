@@ -2,48 +2,48 @@
 
 /* Tool button active state */
 .tool-btn.active {
-    position: relative;
+  position: relative;
 }
 
 .tool-btn.active::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background-color: #2563eb; /* blue-600 */
-    border-top-left-radius: 0.25rem;
-    border-bottom-left-radius: 0.25rem;
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #2563eb; /* blue-600 */
+  border-top-left-radius: 0.25rem;
+  border-bottom-left-radius: 0.25rem;
 }
 
 /* Results pre formatting */
 #results-content pre {
-    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-    font-size: 0.875rem;
-    line-height: 1.5;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
 
 /* Smooth transitions */
 .tool-btn {
-    transition: all 0.2s ease-in-out;
+  transition: all 0.2s ease-in-out;
 }
 
 /* Loading spinner animation */
 @keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Mobile responsiveness adjustments */
 @media (max-width: 768px) {
-    .container {
-        padding-left: 1rem;
-        padding-right: 1rem;
-    }
-    
-    #results-content pre {
-        font-size: 0.75rem;
-    }
-} 
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  #results-content pre {
+    font-size: 0.75rem;
+  }
+}

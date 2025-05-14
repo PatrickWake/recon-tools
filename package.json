@@ -4,9 +4,10 @@
   "description": "Cloud-Native Security Analysis Tools",
   "type": "module",
   "scripts": {
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
-    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage"
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky install"
   },
   "repository": {
     "type": "git",
@@ -26,20 +27,23 @@
   "devDependencies": {
     "@babel/core": "^7.24.0",
     "@babel/preset-env": "^7.24.0",
+    "@playwright/test": "^1.42.1",
+    "eslint": "^8.57.0",
+    "husky": "^9.0.11",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
+    "lint-staged": "^15.2.2",
+    "prettier": "^3.2.5",
+    "serve": "^14.2.1",
     "whatwg-fetch": "^3.6.20"
   },
-  "jest": {
-    "testEnvironment": "jsdom",
-    "setupFiles": ["<rootDir>/tests/setup.js"],
-    "moduleDirectories": ["node_modules", "docs/js"],
-    "collectCoverageFrom": [
-      "docs/js/**/*.js"
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
     ],
-    "transform": {},
-    "moduleNameMapper": {
-      "^(\\.{1,2}/.*)\\.js$": "$1"
-    }
+    "*.{json,md,yml}": [
+      "prettier --write"
+    ]
   }
-} 
+}

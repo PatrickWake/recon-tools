@@ -1,88 +1,88 @@
 export const TECH_PATTERNS = {
-    frameworks: {
-        react: {
-            scripts: ['react.', 'react-dom.'],
-            html: ['data-reactroot', 'data-reactid']
-        },
-        vue: {
-            scripts: ['vue.', 'nuxt'],
-            html: ['data-v-', '__vue__']
-        },
-        angular: {
-            scripts: ['angular.'],
-            html: ['ng-', '[ng-']
-        },
-        jquery: {
-            scripts: ['jquery.'],
-            html: ['jquery']
-        }
+  frameworks: {
+    react: {
+      scripts: ['react.', 'react-dom.'],
+      html: ['data-reactroot', 'data-reactid'],
     },
-    analytics: {
-        'google-analytics': {
-            scripts: ['google-analytics.com', 'ga.js', 'gtag'],
-            html: ['GoogleAnalyticsObject', 'ga(', 'gtag(']
-        },
-        'google-tag-manager': {
-            scripts: ['googletagmanager.com'],
-            html: ['google_tag_manager', 'GTM-']
-        }
+    vue: {
+      scripts: ['vue.', 'nuxt'],
+      html: ['data-v-', '__vue__'],
     },
-    cdn: {
-        cloudflare: {
-            headers: ['cf-ray', 'cf-cache-status'],
-            html: ['cloudflare']
-        },
-        akamai: {
-            headers: ['x-akamai-transformed', 'akamai-origin-hop']
-        },
-        fastly: {
-            headers: ['fastly-io-info', 'x-fastly']
-        }
+    angular: {
+      scripts: ['angular.'],
+      html: ['ng-', '[ng-'],
     },
-    security: {
-        'security-headers': {
-            headers: [
-                'content-security-policy',
-                'x-frame-options',
-                'x-xss-protection',
-                'x-content-type-options',
-                'strict-transport-security'
-            ]
-        }
+    jquery: {
+      scripts: ['jquery.'],
+      html: ['jquery'],
     },
-    server: {
-        nginx: {
-            headers: ['nginx', 'x-nginx']
-        },
-        apache: {
-            headers: ['apache', 'x-powered-by: php']
-        },
-        iis: {
-            headers: ['microsoft-iis', 'asp.net']
-        }
+  },
+  analytics: {
+    'google-analytics': {
+      scripts: ['google-analytics.com', 'ga.js', 'gtag'],
+      html: ['GoogleAnalyticsObject', 'ga(', 'gtag('],
     },
-    advertising: {
-        'google-ads': {
-            scripts: ['pagead2.googlesyndication.com', 'adsbygoogle'],
-            html: ['adsbygoogle']
-        },
-        'facebook-pixel': {
-            scripts: ['connect.facebook.net/fbevents.js'],
-            html: ['fbq(']
-        }
+    'google-tag-manager': {
+      scripts: ['googletagmanager.com'],
+      html: ['google_tag_manager', 'GTM-'],
     },
-    ecommerce: {
-        'woocommerce': {
-            scripts: ['woocommerce'],
-            html: ['woocommerce', 'wc_']
-        },
-        'shopify': {
-            scripts: ['shopify'],
-            html: ['Shopify.']
-        },
-        'magento': {
-            scripts: ['magento'],
-            html: ['Mage.']
-        }
-    }
-}; 
+  },
+  cdn: {
+    cloudflare: {
+      headers: ['cf-ray', 'cf-cache-status'],
+      html: ['cloudflare'],
+    },
+    akamai: {
+      headers: ['x-akamai-transformed', 'akamai-origin-hop'],
+    },
+    fastly: {
+      headers: ['fastly-io-info', 'x-fastly'],
+    },
+  },
+  security: {
+    'security-headers': {
+      headers: [
+        'content-security-policy',
+        'x-frame-options',
+        'x-xss-protection',
+        'x-content-type-options',
+        'strict-transport-security',
+      ],
+    },
+  },
+  server: {
+    nginx: {
+      headers: ['nginx', 'x-nginx'],
+    },
+    apache: {
+      headers: ['apache', 'x-powered-by: php'],
+    },
+    iis: {
+      headers: ['microsoft-iis', 'asp.net'],
+    },
+  },
+  advertising: {
+    'google-ads': {
+      scripts: ['pagead2.googlesyndication.com', 'adsbygoogle'],
+      html: ['adsbygoogle'],
+    },
+    'facebook-pixel': {
+      scripts: ['connect.facebook.net/fbevents.js'],
+      html: ['fbq('],
+    },
+  },
+  ecommerce: {
+    woocommerce: {
+      scripts: ['woocommerce'],
+      html: ['woocommerce', 'wc_'],
+    },
+    shopify: {
+      scripts: ['shopify'],
+      html: ['Shopify.'],
+    },
+    magento: {
+      scripts: ['magento'],
+      html: ['Mage.'],
+    },
+  },
+};

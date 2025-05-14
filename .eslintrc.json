@@ -1,0 +1,28 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true,
+    "jest": true
+  },
+  "extends": "eslint:recommended",
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module"
+  },
+  "rules": {
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "no-inner-declarations": "error"
+  },
+  "overrides": [
+    {
+      "files": ["tests/**/*.js", "tests/setup.js"],
+      "env": {
+        "jest": true
+      },
+      "globals": {
+        "global": "writable"
+      }
+    }
+  ]
+}
