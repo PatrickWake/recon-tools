@@ -35,13 +35,14 @@ describe('HTTP Header Analyzer Tool', () => {
         'x-frame-options': 'SAMEORIGIN',
         'x-content-type-options': 'nosniff',
       },
-      security: {
-        'Content-Security-Policy': false,
-        'Strict-Transport-Security': true,
-        'X-Content-Type-Options': true,
-        'X-Frame-Options': true,
-        'X-XSS-Protection': false,
+      securityHeaders: {
+        'content-security-policy': null,
+        'strict-transport-security': 'max-age=31536000',
+        'x-content-type-options': 'nosniff',
+        'x-frame-options': 'SAMEORIGIN',
+        'x-xss-protection': null,
       },
+      missingSecurityHeaders: expect.arrayContaining(['content-security-policy', 'x-xss-protection']),
     });
   });
 
@@ -58,19 +59,26 @@ describe('HTTP Header Analyzer Tool', () => {
 
     const result = await analyzeHeaders('https://example.com');
 
-    expect(result.security).toEqual({
-      'Content-Security-Policy': false,
-      'Strict-Transport-Security': false,
-      'X-Content-Type-Options': false,
-      'X-Frame-Options': false,
-      'X-XSS-Protection': false,
+    expect(result.securityHeaders).toEqual({
+      'content-security-policy': null,
+      'strict-transport-security': null,
+      'x-content-type-options': null,
+      'x-frame-options': null,
+      'x-xss-protection': null,
     });
+    expect(result.missingSecurityHeaders).toEqual([
+      'content-security-policy',
+      'strict-transport-security',
+      'x-content-type-options',
+      'x-frame-options',
+      'x-xss-protection',
+    ]);
   });
 
   test('handles network errors gracefully', async () => {
     global.fetch
       .mockRejectedValueOnce(new Error('Primary proxy failed'))
-      .mockRejectedValueOnce(new Error('Network error'));
+      .mockRejectedValueOnce(new Error('Fallback proxy failed'));
 
     await expect(analyzeHeaders('https://example.com')).rejects.toThrow(
       'Failed to analyze headers: Network error'
@@ -78,11 +86,14 @@ describe('HTTP Header Analyzer Tool', () => {
   });
 
   test('handles invalid responses gracefully', async () => {
-    global.fetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      statusText: 'Internal Server Error',
-    });
+    global.fetch
+      .mockRejectedValueOnce(new Error('Primary proxy network failure'))
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        headers: new Map(),
+      });
 
     await expect(analyzeHeaders('https://example.com')).rejects.toThrow(
       'Failed to analyze headers: HTTP error! status: 500'
@@ -95,10 +106,12 @@ describe('HTTP Header Analyzer Tool', () => {
       ['content-type', 'text/html'],
     ]);
 
-    global.fetch.mockRejectedValueOnce(new Error('Primary proxy failed')).mockResolvedValueOnce({
-      ok: true,
-      headers: mockHeaders,
-    });
+    global.fetch
+      .mockRejectedValueOnce(new Error('Primary proxy failed'))
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: mockHeaders,
+      });
 
     const result = await analyzeHeaders('https://example.com');
 

@@ -49,6 +49,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -119,11 +121,10 @@ jobs:
         env:
           LIGHTHOUSE_PORT: 3000
           LIGHTHOUSE_HOST: 'localhost'
-          LIGHTHOUSE_URL: ${{ github.event.pull_request.head.repo.html_url || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+          LIGHTHOUSE_URL: http://localhost:3000
         with:
           configPath: './lighthouserc.cjs'
           uploadArtifacts: true
-          temporaryPublicStorage: true
 
       - name: Check bundle size
         uses: preactjs/compressed-size-action@v2

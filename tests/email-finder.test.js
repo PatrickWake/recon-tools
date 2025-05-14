@@ -27,6 +27,7 @@ describe('Email Finder Tool', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       text: () => Promise.resolve(mockHtml),
+      headers: new Map()
     });
 
     const result = await findEmails('https://example.com');
@@ -59,6 +60,7 @@ describe('Email Finder Tool', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       text: () => Promise.resolve('<html><body>No emails here</body></html>'),
+      headers: new Map()
     });
 
     const result = await findEmails('https://example.com');
@@ -90,6 +92,7 @@ describe('Email Finder Tool', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       text: () => Promise.resolve(mockHtml),
+      headers: new Map()
     });
 
     const result = await findEmails('https://example.com');

@@ -10,7 +10,8 @@ test('basic functionality', async ({ page }) => {
   await expect(page.locator('.tool-btn')).toHaveCount(9);
 
   // Test CMS detection
-  await page.fill('#target-url', 'https://wordpress.org');
+  await page.click('button[data-tool="cms-detect"]');
+  await page.fill('#targetUrl', 'https://wordpress.org');
   await page.click('button[type="submit"]');
 
   // Wait for results

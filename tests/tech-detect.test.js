@@ -81,18 +81,14 @@ describe('Technology Detection Tool', () => {
   });
 
   test('handles invalid response gracefully', async () => {
-    // Mock both proxies returning 500
+    // Mock primary proxy failure, fallback returns 500
     global.fetch
+      .mockRejectedValueOnce(new Error('Primary proxy failed')) // Simulates primary proxy failure
       .mockResolvedValueOnce({
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',
-      })
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        statusText: 'Internal Server Error',
-      });
+      }); // Simulates fallback proxy returning 500
 
     await expect(detectTech('https://example.com')).rejects.toThrow(
       'Failed to detect technologies: HTTP error! status: 500'

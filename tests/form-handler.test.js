@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
 import '../docs/js/app.js';
+import { init as initApp } from '../docs/js/app.js';
 
 describe('Form Handler', () => {
   let form;
@@ -58,6 +59,8 @@ describe('Form Handler', () => {
         })
       })
     );
+    
+    initApp();
   });
 
   afterEach(() => {

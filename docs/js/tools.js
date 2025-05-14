@@ -195,9 +195,28 @@ export async function detectTech(url) {
 }
 
 // HTTP Header Analysis
-export async function analyzeHeaders(url) {
+export async function analyzeHeaders(url, testMode = false) {
   try {
-    const response = await fetchWithProxy(url);
+    let response;
+    if (testMode) {
+      response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    } else {
+      try {
+        response = await fetchWithProxy(url, CORS_PROXY);
+      } catch (error) {
+        logger.warn('Primary proxy failed, trying fallback for analyzeHeaders', error);
+        try {
+          response = await fetchWithProxy(url, FALLBACK_CORS_PROXY);
+        } catch (fallbackError) {
+          // If both proxies fail, throw a generic network error to be caught by the main try-catch
+          throw new Error('Network error after fallback for analyzeHeaders');
+        }
+      }
+    }
+
     const headers = response.headers;
     const normalizedHeaders = {};
 
@@ -221,13 +240,18 @@ export async function analyzeHeaders(url) {
       headers: normalizedHeaders,
       securityHeaders,
       missingSecurityHeaders: Object.entries(securityHeaders)
-        .filter(([_, value]) => !value)
+        .filter(([unusedKey, value]) => !value)
         .map(([key]) => key)
     };
   } catch (error) {
-    if (error.message.includes('Failed to fetch')) {
+    if (error.message.includes('Network error after fallback for analyzeHeaders')) {
       throw new Error('Failed to analyze headers: Network error');
     }
+    // Check for HTTP error specifically from fetchWithProxy
+    if (error.message.includes('HTTP error! status:')) {
+      throw new Error(`Failed to analyze headers: ${error.message}`);
+    }
+    // Generic fallback for other errors during proxy attempts or header processing
     throw new Error(`Failed to analyze headers: ${error.message}`);
   }
 }
@@ -430,8 +454,8 @@ export async function findEmails(url) {
     const { html: content } = await fetchContent(url);
     const emailSet = new Set();
 
-    // Regular expression for email addresses
-    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+    // Regular expression for email addresses (revised for better ReDoS resilience)
+    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}/g;
 
     // Find emails in text content
     const textEmails = content.match(emailRegex) || [];

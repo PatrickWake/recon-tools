@@ -25,6 +25,7 @@ describe('Robots.txt Analyzer Tool', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       text: () => Promise.resolve(mockRobotsTxt),
+      headers: new Map()
     });
 
     const result = await analyzeRobots('https://example.com');
@@ -64,12 +65,16 @@ describe('Robots.txt Analyzer Tool', () => {
   });
 
   test('handles missing robots.txt gracefully', async () => {
-    // Mock 404 response
-    global.fetch.mockRejectedValueOnce(new Error('Primary proxy failed')).mockResolvedValueOnce({
-      ok: false,
-      status: 404,
-      statusText: 'Not Found',
-    });
+    // Mock 404 response for primary, then 404 for fallback
+    global.fetch
+      .mockRejectedValueOnce(new Error('Primary proxy failed'))
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+        headers: new Map(),
+        text: () => Promise.resolve('Not Found')
+      });
 
     await expect(analyzeRobots('https://example.com')).rejects.toThrow(
       'Failed to analyze robots.txt: HTTP error! status: 404'
@@ -81,6 +86,7 @@ describe('Robots.txt Analyzer Tool', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       text: () => Promise.resolve(''),
+      headers: new Map()
     });
 
     const result = await analyzeRobots('https://example.com');
@@ -92,7 +98,7 @@ describe('Robots.txt Analyzer Tool', () => {
     // Mock network error for both proxies
     global.fetch
       .mockRejectedValueOnce(new Error('Primary proxy failed'))
-      .mockRejectedValueOnce(new Error('Network error'));
+      .mockRejectedValueOnce(new Error('Fallback proxy network error'));
 
     await expect(analyzeRobots('https://example.com')).rejects.toThrow(
       'Failed to analyze robots.txt: Network error'

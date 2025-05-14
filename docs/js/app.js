@@ -1,5 +1,3 @@
-// Import technology patterns
-import { TECH_PATTERNS } from './tech-patterns.js';
 import { logger } from './logger.js';
 
 // Import tool functions
@@ -44,25 +42,25 @@ async function handleFormSubmit(event) {
 
   // Validate URL
   if (!targetUrl) {
-    showError('Please enter a URL');
+    showError('Please enter a URL', errorDiv, errorMessage);
     return;
   }
 
   try {
     new URL(targetUrl);
   } catch (error) {
-    showError('Please enter a valid URL');
+    showError('Please enter a valid URL', errorDiv, errorMessage);
     return;
   }
 
   if (!selectedTool) {
-    showError('Please select a tool');
+    showError('Please select a tool', errorDiv, errorMessage);
     return;
   }
 
-  hideError();
-  showLoading();
-  hideResults();
+  hideError(errorDiv);
+  showLoading(loadingDiv);
+  hideResults(resultsDiv);
 
   try {
     let results;
@@ -95,69 +93,36 @@ async function handleFormSubmit(event) {
         throw new Error('Please select a tool');
     }
 
-    showResults(results);
+    showResults(results, resultsDiv, resultsContent, document.getElementById('resultsTitle'));
   } catch (error) {
-    showError(error.message);
+    showError(error.message, errorDiv, errorMessage);
   } finally {
-    hideLoading();
+    hideLoading(loadingDiv);
   }
 }
 
-// Initialize the page
-if (typeof window !== 'undefined') {
-  document.addEventListener('DOMContentLoaded', () => {
-    const urlInput = document.getElementById('targetUrl');
-    const toolButtons = document.querySelectorAll('.tool-btn');
-    
-    // Add event listeners if in browser environment
-    toolButtons?.forEach((button) => {
-      if (!button.disabled) {
-        button.addEventListener('click', handleToolSelection);
-      }
-    });
-
-    // Form submission handler
-    const analysisForm = document.getElementById('scanForm');
-    analysisForm?.addEventListener('submit', handleFormSubmit);
-
-    // Set default URL
-    if (urlInput) {
-      urlInput.value = 'https://example.com';
+// Function to initialize event listeners and page setup
+function init() {
+  const urlInput = document.getElementById('targetUrl');
+  const toolButtons = document.querySelectorAll('.tool-btn');
+  
+  toolButtons?.forEach((button) => {
+    if (!button.disabled) {
+      button.addEventListener('click', handleToolSelection);
     }
   });
-}
 
-function isValidUrl(string) {
-  try {
-    const url = new URL(string);
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  } catch {
-    return false;
+  const analysisForm = document.getElementById('scanForm');
+  analysisForm?.addEventListener('submit', handleFormSubmit);
+
+  if (urlInput) {
+    urlInput.value = 'https://example.com';
   }
 }
 
-// Helper function to check if a subdomain resolves
-async function checkSubdomain(subdomain, domain) {
-  try {
-    const response = await fetch(`https://dns.google/resolve?name=${subdomain}.${domain}`);
-    if (!response.ok) {
-      return null;
-    }
-    const data = await response.json();
-    if (data.Status === 0 && data.Answer && data.Answer.length > 0) {
-      return {
-        name: `${subdomain}.${domain}`,
-        records: data.Answer.map((record) => ({
-          type: record.type,
-          data: record.data,
-        })),
-      };
-    }
-    return null;
-  } catch (error) {
-    // Log error but continue scanning
-    return null;
-  }
+// Initialize the page if in a browser environment
+if (typeof window !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', init);
 }
 
 // Helper function to fetch with proxy
@@ -184,61 +149,25 @@ function extractHeaders(response) {
   return Object.fromEntries(response.headers);
 }
 
-// Helper function to fetch content
-async function fetchContent(url, testMode = false) {
-  let response;
-  
-  if (testMode) {
-    response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-  } else {
-    try {
-      response = await fetchWithProxy(url, CORS_PROXY);
-    } catch (error) {
-      logger.warn('Primary proxy failed, trying fallback', error);
-      try {
-        response = await fetchWithProxy(url, FALLBACK_CORS_PROXY);
-      } catch (fallbackError) {
-        throw new Error('Network error');
-      }
-    }
-  }
-  
-  const html = await response.text();
-  const headers = extractHeaders(response);
-  
-  return { html, headers };
-}
-
 // UI Helper Functions
-function showLoading() {
-  const loadingDiv = document.getElementById('loading');
+function showLoading(loadingDiv) {
   loadingDiv.classList.remove('hidden');
 }
 
-function hideLoading() {
-  const loadingDiv = document.getElementById('loading');
+function hideLoading(loadingDiv) {
   loadingDiv.classList.add('hidden');
 }
 
-function showError(message) {
-  const errorDiv = document.getElementById('error');
-  const errorMessage = document.getElementById('errorMessage');
+function showError(message, errorDiv, errorMessage) {
   errorMessage.textContent = message;
   errorDiv.classList.remove('hidden');
 }
 
-function hideError() {
-  const errorDiv = document.getElementById('error');
+function hideError(errorDiv) {
   errorDiv.classList.add('hidden');
 }
 
-function showResults(results) {
-  const resultsDiv = document.getElementById('results');
-  const resultsTitle = document.getElementById('resultsTitle');
-  const resultsContent = document.getElementById('resultsContent');
+function showResults(results, resultsDiv, resultsContent, resultsTitle) {
   const selectedTool = document.querySelector('.tool-btn.active')?.dataset.tool;
 
   // Set title based on selected tool
@@ -265,10 +194,9 @@ function showResults(results) {
   resultsDiv.classList.remove('hidden');
 }
 
-function hideResults() {
-  const resultsDiv = document.getElementById('results');
+function hideResults(resultsDiv) {
   resultsDiv.classList.add('hidden');
 }
 
-// Export all the tool functions
-export { handleToolSelection, handleFormSubmit, detectCMS, detectTech, analyzeHeaders, dnsLookup, scanSubdomains, analyzeRobots, findEmails, analyzeSslTls }; 
+// Export functions needed for testing or other modules
+export { handleToolSelection, handleFormSubmit, detectCMS, detectTech, analyzeHeaders, dnsLookup, scanSubdomains, analyzeRobots, findEmails, analyzeSslTls, init }; // Export init for testing 
