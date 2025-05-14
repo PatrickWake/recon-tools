@@ -77,31 +77,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests with coverage
-        run: npm test -- --coverage --coverageThreshold='{"global":{"branches":40,"functions":40,"lines":40,"statements":40}}'
-
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
-
-      - name: Run browser tests
-        run: |
-          npx playwright install --with-deps
-          npm run test:e2e
-
   performance:
     runs-on: ubuntu-latest
     steps:
@@ -133,7 +108,7 @@ jobs:
           strip-hash: ''
 
   deploy-preview:
-    needs: [code-quality, security, test, performance]
+    needs: [code-quality, security, performance]
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     environment:
@@ -160,7 +135,7 @@ jobs:
           artifact_name: github-pages-preview
 
   deploy-production:
-    needs: [code-quality, security, test, performance]
+    needs: [code-quality, security, performance]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     environment:

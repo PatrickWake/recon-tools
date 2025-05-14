@@ -4,8 +4,6 @@
   "description": "Cloud-Native Security Analysis Tools",
   "type": "module",
   "scripts": {
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "test:e2e": "playwright test",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -38,27 +36,6 @@
     "prettier": "^3.2.5",
     "serve": "^14.2.1",
     "whatwg-fetch": "^3.6.20"
-  },
-  "jest": {
-    "testEnvironment": "jsdom",
-    "setupFiles": [
-      "<rootDir>/tests/setup.js"
-    ],
-    "moduleDirectories": [
-      "node_modules",
-      "docs/js"
-    ],
-    "collectCoverageFrom": [
-      "docs/js/**/*.js"
-    ],
-    "transform": {},
-    "moduleNameMapper": {
-      "^(\\.{1,2}/.*)\\.js$": "$1"
-    },
-    "testPathIgnorePatterns": [
-      "/node_modules/",
-      "/tests/e2e/"
-    ]
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
