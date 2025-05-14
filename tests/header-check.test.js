@@ -89,14 +89,19 @@ describe('HTTP Header Analyzer Tool', () => {
   });
 
   test('handles invalid responses gracefully', async () => {
-    global.fetch
-      .mockRejectedValueOnce(new Error('Primary proxy network failure'))
-      .mockResolvedValueOnce({
+    global.fetch = jest
+      .fn()
+      .mockImplementationOnce(async () => {
+        throw new Error('Primary proxy network failure');
+      })
+      .mockImplementationOnce(async () => ({
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',
         headers: new Map(),
-      });
+        text: async () => 'Server Error',
+        json: async () => ({ error: 'Server Error' }),
+      }));
 
     await expect(analyzeHeaders('https://example.com')).rejects.toThrow(
       'Failed to analyze headers: HTTP error! status: 500'

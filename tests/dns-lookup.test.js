@@ -5,7 +5,7 @@ describe('DNS Lookup Tool', () => {
   beforeEach(() => {
     // Clear all mocks before each test
     jest.clearAllMocks();
-    global.fetch = jest.fn(); 
+    global.fetch = jest.fn();
   });
 
   test('correctly fetches and parses DNS records', async () => {
@@ -26,7 +26,16 @@ describe('DNS Lookup Tool', () => {
       // Add other record types if dnsLookup queries them by default and setup.js doesn't cover them
       NS: { Status: 0, Answer: [{ name: 'example.com.', TTL: 3600, data: 'ns1.example.com.' }] },
       TXT: { Status: 0, Answer: [{ name: 'example.com.', TTL: 3600, data: 'sample text record' }] },
-      SOA: { Status: 0, Answer: [{ name: 'example.com.', TTL: 3600, data: 'ns1.example.com. hostmaster.example.com. 1 7200 3600 1209600 3600' }] },
+      SOA: {
+        Status: 0,
+        Answer: [
+          {
+            name: 'example.com.',
+            TTL: 3600,
+            data: 'ns1.example.com. hostmaster.example.com. 1 7200 3600 1209600 3600',
+          },
+        ],
+      },
     };
 
     global.fetch
@@ -42,9 +51,11 @@ describe('DNS Lookup Tool', () => {
     expect(result).toHaveProperty('domain', 'example.com');
     expect(result).toHaveProperty('timestamp');
     expect(result).toHaveProperty('records');
-    expect(result.records.A).toEqual([ expect.objectContaining({ data: '93.184.216.34' }) ]);
-    expect(result.records.AAAA).toEqual([ expect.objectContaining({ data: '2606:2800:220:1:248:1893:25c8:1946' }) ]);
-    expect(result.records.MX).toEqual([ expect.objectContaining({ data: '10 mail.example.com.' }) ]);
+    expect(result.records.A).toEqual([expect.objectContaining({ data: '93.184.216.34' })]);
+    expect(result.records.AAAA).toEqual([
+      expect.objectContaining({ data: '2606:2800:220:1:248:1893:25c8:1946' }),
+    ]);
+    expect(result.records.MX).toEqual([expect.objectContaining({ data: '10 mail.example.com.' })]);
   });
 
   test('handles DNS query errors gracefully', async () => {
@@ -56,11 +67,14 @@ describe('DNS Lookup Tool', () => {
   });
 
   test('handles invalid responses gracefully', async () => {
-    global.fetch.mockResolvedValue({
-      ok: false,
-      status: 500,
-      statusText: 'Internal Server Error',
-    });
+    global.fetch
+      .mockRejectedValueOnce(new Error('Primary proxy network failure'))
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        headers: new Map(),
+      });
 
     const result = await dnsLookup('example.com');
     expect(result).toHaveProperty('domain', 'example.com');
