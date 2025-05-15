@@ -14,14 +14,15 @@ import {
 
 // Tool selection handler
 function handleToolSelection(event) {
-  const button = event.currentTarget;
-  if (!button || button.disabled) return;
+  const clickedButton = event.currentTarget;
+  if (!clickedButton || clickedButton.disabled) return;
 
-  // Remove active class from all buttons
-  document.querySelectorAll('.tool-btn').forEach((btn) => btn.classList.remove('active'));
-
-  // Add active class to clicked button
-  button.classList.add('active');
+  const currentActiveButton = document.querySelector('.tool-btn.active');
+  if (currentActiveButton) {
+    currentActiveButton.classList.remove('active');
+  }
+  
+  clickedButton.classList.add('active');
 }
 
 // Form submission handler
@@ -29,19 +30,7 @@ async function handleFormSubmit(event) {
   event.preventDefault();
 
   const targetUrl = document.getElementById('targetUrl').value.trim();
-  let selectedToolElement = document.querySelector('.tool-btn.active');
-  
-  // If no tool is active, try to default to the first enabled tool button
-  if (!selectedToolElement) {
-    const firstEnabledTool = document.querySelector('.tool-btn:not([disabled])');
-    if (firstEnabledTool) {
-      // Manually set it active and then re-query or get its data-tool
-      document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-      firstEnabledTool.classList.add('active');
-      selectedToolElement = firstEnabledTool;
-    }
-  }
-  
+  const selectedToolElement = document.querySelector('.tool-btn.active');
   const selectedTool = selectedToolElement?.dataset.tool;
 
   const loadingDiv = document.getElementById('loading');
