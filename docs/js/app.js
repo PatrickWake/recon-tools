@@ -29,7 +29,21 @@ async function handleFormSubmit(event) {
   event.preventDefault();
 
   const targetUrl = document.getElementById('targetUrl').value.trim();
-  const selectedTool = document.querySelector('.tool-btn.active')?.dataset.tool;
+  let selectedToolElement = document.querySelector('.tool-btn.active');
+  
+  // If no tool is active, try to default to the first enabled tool button
+  if (!selectedToolElement) {
+    const firstEnabledTool = document.querySelector('.tool-btn:not([disabled])');
+    if (firstEnabledTool) {
+      // Manually set it active and then re-query or get its data-tool
+      document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+      firstEnabledTool.classList.add('active');
+      selectedToolElement = firstEnabledTool;
+    }
+  }
+  
+  const selectedTool = selectedToolElement?.dataset.tool;
+
   const loadingDiv = document.getElementById('loading');
   const resultsDiv = document.getElementById('results');
   const errorDiv = document.getElementById('error');
