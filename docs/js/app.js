@@ -17,12 +17,15 @@ function handleToolSelection(event) {
   const clickedButton = event.currentTarget;
   if (!clickedButton || clickedButton.disabled) return;
 
-  const currentActiveButton = document.querySelector('.tool-btn.active');
-  if (currentActiveButton) {
-    currentActiveButton.classList.remove('active');
-  }
-  
-  clickedButton.classList.add('active');
+  // Remove active state from all buttons
+  document.querySelectorAll('.tool-btn').forEach((btn) => {
+    btn.classList.remove('active', 'bg-blue-50', 'border-blue-200');
+    btn.classList.add('bg-gray-50', 'border-gray-200');
+  });
+
+  // Add active state to the clicked button
+  clickedButton.classList.add('active', 'bg-blue-50', 'border-blue-200');
+  clickedButton.classList.remove('bg-gray-50', 'border-gray-200');
 }
 
 // Form submission handler
@@ -153,7 +156,7 @@ function showResults(results, resultsDiv, resultsContent, resultsTitle) {
     dns: 'DNS Lookup Results',
     robots: 'Robots.txt Analysis Results',
     emails: 'Email Addresses Found',
-    'ssl-tls': 'SSL/TLS Analysis Results',
+    ssl: 'SSL/TLS Analysis Results',
     subdomains: 'Subdomain Scan Results',
   };
   resultsTitle.textContent = titles[selectedTool] || 'Analysis Results';
